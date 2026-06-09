@@ -1,0 +1,36 @@
+# Keys - NEVER commit
+**/keys/*.pem
+**/keys/*.json
+**/.env
+**/.env.local
+**/.env.production
+
+# Node
+**/node_modules/
+**/dist/
+**/.next/
+**/build/
+**/coverage/
+
+# Flutter
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/**.g.dart
+**/**.freezed.dart
+**/*.iml
+**/android/.gradle/
+**/android/local.properties
+**/ios/Pods/
+**/ios/.symlinks/
+
+# Terraform
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.backup
+**/*.tfvars
+
+# Misc
+.DS_Store
+*.log
+*.pid

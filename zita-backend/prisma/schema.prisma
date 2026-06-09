@@ -1,0 +1,276 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  passwordHash      String?
+  displayName       String
+  avatarUrl         String?
+  role              Role      @default(READER)
+  isEmailVerified   Boolean   @default(false)
+  preferredLanguage String    @default("en")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  sessions          Session[]
+  devices           Device[]
+  subscription      Subscription?
+  readingProgress   ReadingProgress[]
+  highlights        Highlight[]
+  comments          Comment[]
+  commentLikes      CommentLike[]
+  bookLikes         BookLike[]
+  offlineKeys       OfflineKey[]
+  analyticsEvents   AnalyticsEvent[]
+
+  @@index([email])
+  @@map("users")
+}
+
+enum Role     { READER MODERATOR ADMIN }
+enum Platform { IOS ANDROID WEB }
+
+model Session {
+  id           String    @id @default(cuid())
+  userId       String
+  refreshToken String    @unique
+  deviceId     String
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+  revokedAt    DateTime?
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, deviceId])
+  @@map("sessions")
+}
+
+model Device {
+  id          String    @id @default(cuid())
+  userId      String
+  fingerprint String
+  platform    Platform
+  pushToken   String?
+  lastSeenAt  DateTime  @default(now())
+  boundAt     DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  offlineKeys OfflineKey[]
+  @@unique([userId, fingerprint])
+  @@map("devices")
+}
+
+model Book {
+  id               String      @id @default(cuid())
+  title            String
+  slug             String      @unique
+  authorName       String
+  description      String
+  coverUrl         String
+  contentType      ContentType
+  language         String      @default("en")
+  totalChapters    Int
+  estimatedMinutes Int
+  isPremium        Boolean     @default(true)
+  price            Decimal?    @db.Decimal(10,2)
+  isPublished      Boolean     @default(false)
+  publishedAt      DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  encryptedFileKey String
+  fileIv           String
+  fileAuthTag      String
+
+  chapters        Chapter[]
+  translations    BookTranslation[]
+  tags            BookTag[]
+  readingProgress ReadingProgress[]
+  highlights      Highlight[]
+  comments        Comment[]
+  likes           BookLike[]
+  offlineKeys     OfflineKey[]
+  purchases       Purchase[]
+  analyticsEvents AnalyticsEvent[]
+
+  @@index([slug])
+  @@index([isPublished, isPremium])
+  @@map("books")
+}
+
+enum ContentType     { BOOK STORY SUMMARY }
+enum TranslationStatus { PENDING PROCESSING COMPLETED FAILED }
+
+model Chapter {
+  id           String   @id @default(cuid())
+  bookId       String
+  chapterIndex Int
+  title        String
+  wordCount    Int
+  encryptedKey String
+  iv           String
+  authTag      String
+  createdAt    DateTime @default(now())
+  book         Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  @@unique([bookId, chapterIndex])
+  @@map("chapters")
+}
+
+model BookTranslation {
+  id                   String            @id @default(cuid())
+  bookId               String
+  language             String
+  status               TranslationStatus @default(PENDING)
+  translatedTitle      String?
+  translatedDescription String?
+  encryptedFileKey     String?
+  iv                   String?
+  authTag              String?
+  completedAt          DateTime?
+  createdAt            DateTime          @default(now())
+  book                 Book              @relation(fields: [bookId], references: [id])
+  @@unique([bookId, language])
+  @@map("book_translations")
+}
+
+model Tag     { id String @id @default(cuid()); name String @unique; books BookTag[] @@map("tags") }
+model BookTag { bookId String; tagId String; book Book @relation(fields: [bookId], references: [id]); tag Tag @relation(fields: [tagId], references: [id]); @@id([bookId, tagId]); @@map("book_tags") }
+
+model Subscription {
+  id                    String             @id @default(cuid())
+  userId                String             @unique
+  status                SubscriptionStatus
+  platform              Platform
+  platformProductId     String
+  platformTransactionId String             @unique
+  originalTransactionId String
+  currentPeriodStart    DateTime
+  currentPeriodEnd      DateTime
+  trialStart            DateTime?
+  trialEnd              DateTime?
+  cancelledAt           DateTime?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  user                  User               @relation(fields: [userId], references: [id])
+  @@map("subscriptions")
+}
+
+enum SubscriptionStatus { TRIALING ACTIVE PAST_DUE CANCELLED EXPIRED }
+
+model Purchase {
+  id                    String   @id @default(cuid())
+  userId                String
+  bookId                String
+  platformTransactionId String   @unique
+  amount                Decimal  @db.Decimal(10,2)
+  currency              String   @default("USD")
+  purchasedAt           DateTime @default(now())
+  book                  Book     @relation(fields: [bookId], references: [id])
+  @@index([userId])
+  @@map("purchases")
+}
+
+model OfflineKey {
+  id                     String    @id @default(cuid())
+  userId                 String
+  deviceId               String
+  bookId                 String
+  encryptedDecryptionKey String    @db.Text
+  validUntil             DateTime
+  revokedAt              DateTime?
+  createdAt              DateTime  @default(now())
+  user                   User      @relation(fields: [userId], references: [id])
+  device                 Device    @relation(fields: [deviceId], references: [id])
+  book                   Book      @relation(fields: [bookId], references: [id])
+  @@unique([userId, deviceId, bookId])
+  @@index([validUntil])
+  @@map("offline_keys")
+}
+
+model ReadingProgress {
+  id              String    @id @default(cuid())
+  userId          String
+  bookId          String
+  chapterIndex    Int       @default(0)
+  scrollPosition  Float     @default(0)
+  percentComplete Float     @default(0)
+  totalReadSeconds Int      @default(0)
+  lastReadAt      DateTime  @default(now())
+  completedAt     DateTime?
+  user            User      @relation(fields: [userId], references: [id])
+  book            Book      @relation(fields: [bookId], references: [id])
+  @@unique([userId, bookId])
+  @@map("reading_progress")
+}
+
+model Highlight {
+  id           String   @id @default(cuid())
+  userId       String
+  bookId       String
+  chapterIndex Int
+  startOffset  Int
+  endOffset    Int
+  text         String   @db.Text
+  color        String   @default("#FFD700")
+  note         String?
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id])
+  book         Book     @relation(fields: [bookId], references: [id])
+  @@map("highlights")
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  userId    String
+  bookId    String
+  parentId  String?
+  body      String    @db.Text
+  isDeleted Boolean   @default(false)
+  isPinned  Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id])
+  book      Book      @relation(fields: [bookId], references: [id])
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   Comment[] @relation("CommentReplies")
+  likes     CommentLike[]
+  reports   Report[]
+  @@index([bookId, parentId])
+  @@map("comments")
+}
+
+model CommentLike { userId String; commentId String; user User @relation(fields: [userId], references: [id]); comment Comment @relation(fields: [commentId], references: [id]); @@id([userId, commentId]); @@map("comment_likes") }
+model BookLike    { userId String; bookId String;    user User @relation(fields: [userId], references: [id]); book    Book    @relation(fields: [bookId],    references: [id]); @@id([userId, bookId]);    @@map("book_likes") }
+
+model Report {
+  id         String       @id @default(cuid())
+  commentId  String
+  reporterId String
+  reason     ReportReason
+  details    String?
+  status     ReportStatus @default(PENDING)
+  reviewedAt DateTime?
+  createdAt  DateTime     @default(now())
+  comment    Comment      @relation(fields: [commentId], references: [id])
+  @@map("reports")
+}
+
+enum ReportReason { SPAM HARASSMENT SPOILER INAPPROPRIATE OTHER }
+enum ReportStatus { PENDING REVIEWED ACTIONED DISMISSED }
+
+model AnalyticsEvent {
+  id         String   @id @default(cuid())
+  userId     String?
+  bookId     String?
+  eventType  String
+  properties Json     @default("{}")
+  occurredAt DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id])
+  book       Book?    @relation(fields: [bookId], references: [id])
+  @@index([eventType, occurredAt])
+  @@index([userId,    occurredAt])
+  @@map("analytics_events")
+}

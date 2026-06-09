@@ -1,0 +1,22 @@
+name: Admin Panel CI/CD
+on:
+  push:
+    branches: [main]
+    paths: ['zita-admin/**']
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm', cache-dependency-path: zita-admin/package-lock.json }
+      - run: npm ci && npm run build
+        working-directory: zita-admin
+        env: { NEXT_PUBLIC_API_URL: ${{ secrets.API_URL }} }
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:     ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key:      ${{ secrets.VPS_SSH_KEY }}
+          script:   cd /home/zita/apps/zita-ecosystem/zita-admin && git pull && npm ci && npm run build && pm2 restart zita-admin
