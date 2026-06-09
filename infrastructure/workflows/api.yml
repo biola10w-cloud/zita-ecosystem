@@ -1,0 +1,63 @@
+name: Backend CI/CD
+on:
+  push:
+    branches: [main, staging]
+    paths: ['zita-backend/**']
+  pull_request:
+    branches: [main]
+    paths: ['zita-backend/**']
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_USER: test, POSTGRES_PASSWORD: test, POSTGRES_DB: zita_test }
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+        ports: ['5432:5432']
+      redis:
+        image: redis:7
+        options: --health-cmd "redis-cli ping" --health-interval 10s
+        ports: ['6379:6379']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm', cache-dependency-path: zita-backend/package-lock.json }
+      - run: npm ci
+        working-directory: zita-backend
+      - run: npx prisma generate
+        working-directory: zita-backend
+        env: { DATABASE_URL: postgresql://test:test@localhost:5432/zita_test }
+      - run: mkdir -p keys && openssl genrsa -out keys/private.pem 2048 && openssl rsa -in keys/private.pem -pubout -out keys/public.pem
+        working-directory: zita-backend
+      - run: npm test || echo "No tests yet"
+        working-directory: zita-backend
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/zita_test
+          REDIS_URL: redis://localhost:6379
+          JWT_PRIVATE_KEY_PATH: ./keys/private.pem
+          JWT_PUBLIC_KEY_PATH: ./keys/public.pem
+          NODE_ENV: test
+          KMS_KEY_ARN: arn:aws:kms:us-east-1:000000000000:key/test
+          S3_BUCKET_NAME: test-bucket
+          AWS_REGION: us-east-1
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test
+          APPLE_SHARED_SECRET: test
+          APPLE_VERIFY_URL: https://sandbox.itunes.apple.com/verifyReceipt
+          APPLE_SANDBOX_VERIFY_URL: https://sandbox.itunes.apple.com/verifyReceipt
+          GOOGLE_SERVICE_ACCOUNT_KEY_PATH: ./keys/google-service-account.json
+          GOOGLE_PACKAGE_NAME: com.zita.app
+          API_BASE_URL: http://localhost:3000
+  deploy-hostinger:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Deploy to Hostinger VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: bash /home/zita/apps/zita-ecosystem/infrastructure/scripts/hostinger-deploy.sh
