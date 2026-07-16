@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import { StatsGrid } from '@/components/analytics/StatsGrid';
 import { LineChart } from '@/components/analytics/LineChart';
 import { BarChart } from '@/components/analytics/BarChart';
-import { formatNumber, formatDate } from '@/lib/utils';
+import { formatNumber } from '@/lib/utils';
 
 export default function OverviewPage() {
   const [stats, setStats]   = useState<any>(null);
@@ -115,3 +115,4 @@ export default function OverviewPage() {
     </div>
   );
 }
+
