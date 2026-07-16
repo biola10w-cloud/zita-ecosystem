@@ -1,16 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { api } from '@/lib/api';
-
 export default function SubscriptionsPage() {
-  const [plans, setPlans]   = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    api.subscriptions.plans().then(setPlans).finally(() => setLoading(false));
-  }, []);
-
   const statCard = (icon: string, value: string, label: string, delta: string, positive: boolean) => (
     <div style={{ background: '#fff', border: '1px solid #E8E6E1', borderRadius: 14, padding: 16, boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
@@ -30,6 +20,11 @@ export default function SubscriptionsPage() {
     { user: 'Biola A.', platform: '🍎 iOS',     plan: 'Annual',  status: 'ACTIVE',    statusColor: { bg: '#E8F5E9', color: '#2ECC71' }, expires: 'Dec 1, 2025' },
   ];
 
+  const plans = [
+    { id: 1, name: 'Free', price: '0', period: 'month', trialDays: 14, features: ['Unlimited reading', 'Basic analytics', 'Community access'] },
+    { id: 2, name: 'Premium', price: '9.99', period: 'month', savings: 'Save 20%', trialDays: 14, features: ['Ad-free reading', 'Offline access', 'Priority support', 'Exclusive content'] },
+  ];
+
   return (
     <div style={{ maxWidth: 1000 }}>
       <div style={{ marginBottom: 20 }}>
@@ -46,7 +41,7 @@ export default function SubscriptionsPage() {
       </div>
 
       {/* Plans */}
-      {!loading && plans.length > 0 && (
+      {plans.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <h3 style={{ fontSize: 14, fontWeight: 700, color: '#1A1A2E', marginBottom: 12 }}>Available Plans</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
