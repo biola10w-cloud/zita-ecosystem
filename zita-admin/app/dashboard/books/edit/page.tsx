@@ -1,10 +1,10 @@
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { api } from '@/lib/api';
 
-export default function EditBookPage() {
+function EditBookPageContent() {
   const params  = useSearchParams();
   const router  = useRouter();
   const id      = params.get('id');
@@ -59,3 +59,12 @@ export default function EditBookPage() {
     </div>
   );
 }
+
+export default function EditBookPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, color: '#6B6B8A', fontSize: 14 }}>Loading…</div>}>
+      <EditBookPageContent />
+    </Suspense>
+  );
+}
+
