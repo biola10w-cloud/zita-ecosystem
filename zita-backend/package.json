@@ -4,7 +4,7 @@
   "description": "ZITA Reading Ecosystem — Backend API",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "build": "prisma generate && tsc",
     "start": "node dist/server.js",
     "workers": "tsx watch workers/index.ts",
     "db:migrate": "prisma migrate deploy",
@@ -53,3 +53,4 @@
     "vitest": "^1.2.2"
   }
 }
+
