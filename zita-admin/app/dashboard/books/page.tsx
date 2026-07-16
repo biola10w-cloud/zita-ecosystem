@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
-import { formatDate } from '@/lib/utils';
 
 export default function BooksPage() {
   const [books, setBooks]         = useState<any[]>([]);
@@ -137,3 +136,4 @@ export default function BooksPage() {
     </div>
   );
 }
+
