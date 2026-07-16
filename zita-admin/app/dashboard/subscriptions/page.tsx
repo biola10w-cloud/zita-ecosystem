@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { formatDate, formatNumber } from '@/lib/utils';
 
 export default function SubscriptionsPage() {
   const [plans, setPlans]   = useState<any[]>([]);
@@ -111,3 +110,4 @@ export default function SubscriptionsPage() {
     </div>
   );
 }
+
