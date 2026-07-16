@@ -1,14 +1,16 @@
 # ─── Build stage ──────────────────────────────────────────────
 FROM node:20-alpine AS builder
+RUN apk add --no-cache openssl
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+RUN npm install --verbose
 COPY . .
-RUN npx prisma generate
+RUN npx prisma generate --verbose
 RUN npm run build
 
 # ─── Production stage ─────────────────────────────────────────
 FROM node:20-alpine AS runner
+RUN apk add --no-cache openssl
 WORKDIR /app
 
 # Security: non-root user
@@ -30,3 +32,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=15s \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
 
 CMD ["node", "dist/server.js"]
+
