@@ -40,5 +40,12 @@ export async function buildApp() {
   app.setErrorHandler(errorHandler);
   app.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString(), version: '1.0.0' }));
 
+  app.get('/', async () => ({
+    status: 'ok',
+    message: 'Zita API is running',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0',
+  }));
+
   return app;
 }
