@@ -5,7 +5,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install --verbose
 COPY . .
-RUN npx prisma generate --verbose
+RUN npx prisma generate
 RUN npm run build
 
 # ─── Production stage ─────────────────────────────────────────
@@ -26,10 +26,10 @@ COPY --from=builder /app/package.json .
 RUN mkdir -p /app/keys && chown zita:zita /app/keys
 
 USER zita
-EXPOSE 3000
+EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=15s \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
 
 CMD ["node", "dist/server.js"]
 
