@@ -2,7 +2,12 @@
   "$schema": "https://railway.app/railway.schema.json",
   "services": {
     "zita-api": {
-      "source": { "rootDirectory": "zita-backend" }
+      "source": { "rootDirectory": "zita-backend" },
+      "networking": {
+        "serviceDomains": {
+          "<hasDomain>": { "port": 8080 }
+        }
+      }
     },
     "zita-workers": {
       "source": { "rootDirectory": "zita-backend" }
@@ -12,3 +17,4 @@
     }
   }
 }
+
