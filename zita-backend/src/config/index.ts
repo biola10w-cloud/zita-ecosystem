@@ -33,3 +33,4 @@ if (!parsed.success) {
 
 export const config = parsed.data;
 export type Config = typeof config;
+
