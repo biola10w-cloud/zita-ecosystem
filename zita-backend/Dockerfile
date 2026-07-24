@@ -26,7 +26,8 @@ COPY --from=builder /app/package.json .
 RUN mkdir -p /app/keys && chown zita:zita /app/keys
 
 USER zita
-EXPOSE 3000
+EXPOSE 8080
+ENV PORT=8080
 
 CMD ["node", "dist/server.js"]
 
