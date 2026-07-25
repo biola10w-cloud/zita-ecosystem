@@ -1,6 +1,14 @@
 import { FastifyInstance } from 'fastify';
-// Full implementation: see docs/phase3-backend.md
-// This file registers all auth routes
+import { AuthController } from './auth.controller';
+import { authenticate } from '../../shared/middleware/authenticate';
+
 export async function authRoutes(app: FastifyInstance) {
-  // TODO: Wire up controllers — see phase 3 backend documentation
+  // Public
+  app.post('/register', { config: { rateLimit: { max: 5, timeWindow: '15 minutes' } } }, AuthController.register);
+  app.post('/login',    { config: { rateLimit: { max: 5, timeWindow: '15 minutes' } } }, AuthController.login);
+  app.post('/refresh',  { config: { rateLimit: { max: 10, timeWindow: '15 minutes' } } }, AuthController.refresh);
+
+  // Authenticated
+  app.post('/logout', { preHandler: [authenticate] }, AuthController.logout);
+  app.get('/me',      { preHandler: [authenticate] }, AuthController.me);
 }
