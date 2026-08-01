@@ -20,24 +20,61 @@ export async function buildApp() {
     trustProxy: true,
   });
 
+  console.log('[buildApp] Registering helmet...');
   await app.register(helmet, { contentSecurityPolicy: false });
+
+  console.log('[buildApp] Registering cors...');
   await app.register(cors, {
-    origin: config.NODE_ENV === 'production' ? ['https://zita.app', 'https://admin.zita.app'] : true,
+    origin: config.NODE_ENV === 'production'
+      ? ['https://zita.app', 'https://admin.zita.app', /\.railway\.app$/]
+      : true,
     credentials: true,
   });
+
+  console.log('[buildApp] Registering multipart...');
   await app.register(multipart, { limits: { fileSize: 100 * 1024 * 1024, files: 2 } });
 
-  await app.register(authRoutes,          { prefix: '/api/v1/auth' });
+  console.log('[buildApp] Registering authRoutes...');
+  try {
+    await app.register(authRoutes, { prefix: '/api/v1/auth' });
+    console.log('[buildApp] authRoutes registered successfully');
+  } catch (err) {
+    console.error('[buildApp] Failed to register authRoutes:', err);
+    throw err;
+  }
+
+  console.log('[buildApp] Registering usersRoutes...');
   await app.register(usersRoutes,         { prefix: '/api/v1/users' });
+
+  console.log('[buildApp] Registering booksRoutes...');
   await app.register(booksRoutes,         { prefix: '/api/v1/books' });
+
+  console.log('[buildApp] Registering readerRoutes...');
   await app.register(readerRoutes,        { prefix: '/api/v1/books' });
+
+  console.log('[buildApp] Registering communityRoutes...');
   await app.register(communityRoutes,     { prefix: '/api/v1' });
+
+  console.log('[buildApp] Registering subscriptionsRoutes...');
   await app.register(subscriptionsRoutes, { prefix: '/api/v1/subscriptions' });
+
+  console.log('[buildApp] Registering offlineRoutes...');
   await app.register(offlineRoutes,       { prefix: '/api/v1/books' });
+
+  console.log('[buildApp] Registering analyticsRoutes...');
   await app.register(analyticsRoutes,     { prefix: '/api/v1/analytics' });
+
+  console.log('[buildApp] Registering adminRoutes...');
   await app.register(adminRoutes,         { prefix: '/api/v1/admin' });
 
   app.setErrorHandler(errorHandler);
+
+  app.get('/', async () => ({
+    message: 'ZITA API is running',
+    version: '1.0.0',
+    timestamp: new Date().toISOString(),
+  }));
+
   app.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString(), version: '1.0.0' }));
 
   return app;
