@@ -1,7 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { AdminController } from './admin.controller';
-import { authenticate } from '../../shared/middleware/authenticate';
-import { requireRole } from '../../shared/middleware/authorize';
+import { authenticate, requireRole } from '../../shared/middleware/authenticate';
 
 export async function adminRoutes(app: FastifyInstance) {
   // All admin routes require authentication and ADMIN role
@@ -11,14 +10,14 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   // User management routes
-  app.post('/admin/users', AdminController.createUser);
-  app.get('/admin/users', AdminController.listUsers);
-  app.get('/admin/users/:userId', AdminController.getUser);
-  app.put('/admin/users/:userId', AdminController.updateUser);
-  app.patch('/admin/users/:userId/role', AdminController.updateUserRole);
-  app.delete('/admin/users/:userId', AdminController.deleteUser);
+  app.post('/users', AdminController.createUser);
+  app.get('/users', AdminController.listUsers);
+  app.get('/users/:userId', AdminController.getUser);
+  app.put('/users/:userId', AdminController.updateUser);
+  app.patch('/users/:userId/role', AdminController.updateUserRole);
+  app.delete('/users/:userId', AdminController.deleteUser);
 
   // Dashboard stats
-  app.get('/admin/stats', AdminController.getStats);
+  app.get('/stats', AdminController.getStats);
 }
 
