@@ -25,8 +25,13 @@ export const api = {
     requestTranslation: (bookId: string, targetLanguage: string) => request('/admin/translations', { method: 'POST', body: JSON.stringify({ bookId, targetLanguage }) }),
   },
   users: {
-    list:       (page = 1, limit = 20, search?: string) => request<any>(`/admin/users?page=${page}&limit=${limit}${search ? `&search=${encodeURIComponent(search)}` : ''}`),
-    updateRole: (id: string, role: string) => request(`/admin/users/${id}/role`, { method: 'PUT', body: JSON.stringify({ role }) }),
+    list:       (page = 1, limit = 20, search?: string, role?: string) => request<any>(`/admin/users?page=${page}&limit=${limit}${search ? `&search=${encodeURIComponent(search)}` : ''}${role ? `&role=${role}` : ''}`),
+    get:        (id: string) => request<any>(`/admin/users/${id}`),
+    create:     (data: { email: string; password: string; displayName: string; role: string; preferredLanguage: string }) => request<any>('/admin/users', { method: 'POST', body: JSON.stringify(data) }),
+    update:     (id: string, data: { displayName?: string; preferredLanguage?: string }) => request<any>(`/admin/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    updateRole: (id: string, role: string) => request<any>(`/admin/users/${id}/role`, { method: 'PATCH', body: JSON.stringify({ role }) }),
+    delete:     (id: string) => request(`/admin/users/${id}`, { method: 'DELETE' }),
+    stats:      () => request<any>('/admin/stats'),
   },
   analytics: { dashboard: (days = 30) => request<any>(`/analytics/dashboard?days=${days}`) },
   community: {
@@ -34,3 +39,4 @@ export const api = {
     reviewReport: (id: string, action: 'ACTIONED' | 'DISMISSED') => request(`/admin/reports/${id}`, { method: 'PUT', body: JSON.stringify({ action }) }),
   },
 };
+
