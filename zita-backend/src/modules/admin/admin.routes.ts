@@ -6,7 +6,7 @@ export async function adminRoutes(app: FastifyInstance) {
   // All admin routes require authentication and ADMIN role
   app.addHook('preHandler', async (request, reply) => {
     await authenticate(request, reply);
-    await requireRole(['ADMIN'])(request, reply);
+    await requireRole('ADMIN')(request, reply);
   });
 
   // User management routes
