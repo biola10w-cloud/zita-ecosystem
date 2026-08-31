@@ -19,6 +19,16 @@ export async function authRoutes(app: FastifyInstance) {
     config: { rateLimit: rateLimits.auth },
   }, AuthController.refresh);
 
+  // POST /api/v1/auth/forgot-password
+  app.post('/forgot-password', {
+    config: { rateLimit: rateLimits.auth },
+  }, AuthController.forgotPassword);
+
+  // POST /api/v1/auth/reset-password
+  app.post('/reset-password', {
+    config: { rateLimit: rateLimits.auth },
+  }, AuthController.resetPassword);
+
   // POST /api/v1/auth/logout  (requires auth)
   app.post('/logout', {
     preHandler: [authenticate],

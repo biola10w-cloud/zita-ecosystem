@@ -1,6 +1,7 @@
 import { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
 import { ZodError } from 'zod';
 import { Prisma } from '@prisma/client';
+import { captureException } from '../monitoring/sentry';
 
 export function errorHandler(
   error: FastifyError,
@@ -54,8 +55,7 @@ export function errorHandler(
   }
 
   // Unknown errors â€” never leak internal details in production
-  request.log.error(error);
-
+  request.log.error(error);  captureException(error);
   return reply.status(500).send({
     success: false,
     error: {

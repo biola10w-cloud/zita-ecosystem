@@ -70,6 +70,9 @@ export class AuthService {
 
     const tokens = await AuthService.issueTokens(user, device.id);
 
+    const { EmailService } = await import('../../shared/email/email.service');
+    await EmailService.sendWelcomeEmail(user.email, user.displayName);
+
     return {
       user: {
         id: user.id,
@@ -205,6 +208,73 @@ export class AuthService {
       },
       data: { revokedAt: new Date() },
     });
+  }
+
+  // â”€â”€â”€ Password reset â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  private static readonly RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+  /**
+   * Issue a password reset token and email it to the user.
+   * Always resolves successfully (even if the email doesn't exist) to
+   * avoid leaking which emails are registered.
+   */
+  static async requestPasswordReset(email: string, resetUrlBase: string): Promise<void> {
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase().trim() },
+    });
+
+    if (!user) return; // Don't reveal whether the email exists
+
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+    await prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        tokenHash,
+        expiresAt: new Date(Date.now() + AuthService.RESET_TOKEN_TTL_MS),
+      },
+    });
+
+    const { EmailService } = await import('../../shared/email/email.service');
+    await EmailService.sendPasswordResetEmail(
+      user.email,
+      `${resetUrlBase}?token=${rawToken}`,
+    );
+  }
+
+  static async resetPassword(rawToken: string, newPassword: string): Promise<void> {
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+    const resetToken = await prisma.passwordResetToken.findUnique({
+      where: { tokenHash },
+    });
+
+    if (!resetToken || resetToken.usedAt || resetToken.expiresAt < new Date()) {
+      const err: any = new Error('Invalid or expired reset token');
+      err.statusCode = 400;
+      err.code = 'INVALID_RESET_TOKEN';
+      throw err;
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: resetToken.userId },
+        data: { passwordHash },
+      }),
+      prisma.passwordResetToken.update({
+        where: { id: resetToken.id },
+        data: { usedAt: new Date() },
+      }),
+      // Revoke all existing sessions — force re-login everywhere
+      prisma.session.updateMany({
+        where: { userId: resetToken.userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
   }
 
   // â”€â”€â”€ Token issuance (internal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

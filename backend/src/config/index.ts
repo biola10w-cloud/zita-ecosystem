@@ -27,6 +27,13 @@ const envSchema = z.object({
   // Optional — only required when Stripe (web) payments are enabled
   STRIPE_SECRET_KEY:        z.string().optional(),
   STRIPE_WEBHOOK_SECRET:    z.string().optional(),
+  // Optional — only required when each respective integration is enabled
+  SENDGRID_API_KEY:         z.string().optional(),
+  EMAIL_FROM_ADDRESS:       z.string().optional(),
+  SENTRY_DSN:               z.string().optional(),
+  FIREBASE_SERVICE_ACCOUNT_KEY_PATH: z.string().optional(),
+  CDN_BASE_URL:             z.string().optional(),
+  OPENAI_API_KEY:           z.string().optional(),
 });
 
 // Throws at startup if any required env var is missing.

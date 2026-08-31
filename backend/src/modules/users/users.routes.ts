@@ -66,6 +66,32 @@ export async function usersRoutes(app: FastifyInstance) {
     return { success: true, data: devices };
   });
 
+  // PATCH /api/v1/users/me/devices/:deviceId/push-token — register/update
+  // the FCM/APNs token for push notifications
+  app.patch('/me/devices/:deviceId/push-token', { preHandler: [authenticate] }, async (request, reply) => {
+    const params = z.object({ deviceId: z.string().uuid() }).parse(request.params);
+    const { pushToken } = z.object({ pushToken: z.string().min(1).max(500) }).parse(request.body);
+
+    const device = await prisma.device.findFirst({
+      where: { id: params.deviceId, userId: request.user!.sub },
+      select: { id: true },
+    });
+
+    if (!device) {
+      return reply.status(404).send({
+        success: false,
+        error: { code: 'DEVICE_NOT_FOUND', message: 'Device not found' },
+      });
+    }
+
+    await prisma.device.update({
+      where: { id: device.id },
+      data: { pushToken },
+    });
+
+    return { success: true, data: null };
+  });
+
   app.delete('/me/devices/:deviceId', { preHandler: [authenticate] }, async (request, reply) => {
     const params = z.object({ deviceId: z.string().uuid() }).parse(request.params);
     const device = await prisma.device.findFirst({

@@ -90,12 +90,22 @@ export class CommunityService {
   static async createComment(input: CreateCommentInput) {
     const { userId, bookSlug, body, parentId } = input;
 
+    const { ModerationService } = await import('../../shared/moderation/moderation.service');
+    const moderation = await ModerationService.checkText(body);
+    if (moderation.flagged) {
+      const err: any = new Error('Your comment violates our community guidelines');
+      err.statusCode = 400;
+      err.code = 'CONTENT_FLAGGED';
+      throw err;
+    }
+
     const book = await prisma.book.findUniqueOrThrow({
       where: { slug: bookSlug },
       select: { id: true },
     });
 
     // If a parentId is provided, validate it exists and belongs to this book
+    let parentAuthorId: string | null = null;
     if (parentId) {
       const parent = await prisma.comment.findFirst({
         where: { id: parentId, bookId: book.id, isDeleted: false },
@@ -105,13 +115,14 @@ export class CommunityService {
         err.statusCode = 404;
         throw err;
       }
-      // Prevent deep nesting â€” only one level of replies
+      // Prevent deep nesting — only one level of replies
       if (parent.parentId !== null) {
         const err: any = new Error('Cannot reply to a reply');
         err.statusCode = 400;
         err.code = 'NESTING_TOO_DEEP';
         throw err;
       }
+      parentAuthorId = parent.userId;
     }
 
     const comment = await prisma.comment.create({
@@ -127,6 +138,17 @@ export class CommunityService {
         },
       },
     });
+
+    // Notify the parent comment's author (best-effort, never blocks the request)
+    if (parentAuthorId && parentAuthorId !== userId) {
+      const { PushService } = await import('../../shared/push/push.service');
+      PushService.sendToUser(
+        parentAuthorId,
+        'New reply on your comment',
+        `${comment.user.displayName}: ${comment.body.slice(0, 100)}`,
+        { bookSlug, commentId: comment.id },
+      ).catch(() => {});
+    }
 
     return comment;
   }

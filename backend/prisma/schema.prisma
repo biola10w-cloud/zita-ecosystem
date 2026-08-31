@@ -84,6 +84,7 @@ model User {
   analyticsEvents   AnalyticsEvent[]
   reports           Report[]
   authoredBooks     Book[]   @relation("AuthorBooks")
+  passwordResetTokens PasswordResetToken[]
 }
 
 model Device {
@@ -91,12 +92,23 @@ model Device {
   userId      String
   fingerprint String
   platform    DevicePlatform
+  pushToken   String?         // FCM/APNs registration token, for push notifications
   lastSeenAt  DateTime        @default(now())
   createdAt   DateTime        @default(now())
   user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   sessions    Session[]
   offlineKeys OfflineKey[]
   @@unique([userId, fingerprint])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Session {

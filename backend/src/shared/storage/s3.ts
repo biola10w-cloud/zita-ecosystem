@@ -81,7 +81,10 @@ export class S3Service {
       ContentType: contentType,
     }));
 
-    return `https://cdn.zita.app/public/${key}`;
+    // Served through the CDN when configured, falling back to a direct
+    // (unconfigured) placeholder domain otherwise.
+    const cdnBase = config.CDN_BASE_URL ?? 'https://cdn.zita.app';
+    return `${cdnBase}/public/${key}`;
   }
 
   static async deleteObject(key: string): Promise<void> {

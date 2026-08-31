@@ -22,6 +22,16 @@ const refreshSchema = z.object({
   refreshToken: z.string().min(1),
 });
 
+const forgotPasswordSchema = z.object({
+  email:        z.string().email(),
+  resetUrlBase: z.string().url(),
+});
+
+const resetPasswordSchema = z.object({
+  token:       z.string().min(1),
+  newPassword: z.string().min(8).max(128),
+});
+
 export const AuthController = {
   async register(request: FastifyRequest, reply: FastifyReply) {
     const body = registerSchema.parse(request.body);
@@ -77,6 +87,21 @@ export const AuthController = {
   async logout(request: FastifyRequest, reply: FastifyReply) {
     const user = request.user!;
     await AuthService.logout(user.sub, user.deviceId);
+
+    return reply.send({ success: true, data: null });
+  },
+
+  async forgotPassword(request: FastifyRequest, reply: FastifyReply) {
+    const { email, resetUrlBase } = forgotPasswordSchema.parse(request.body);
+    await AuthService.requestPasswordReset(email, resetUrlBase);
+
+    // Always returns success — never reveals whether the email exists
+    return reply.send({ success: true, data: null });
+  },
+
+  async resetPassword(request: FastifyRequest, reply: FastifyReply) {
+    const { token, newPassword } = resetPasswordSchema.parse(request.body);
+    await AuthService.resetPassword(token, newPassword);
 
     return reply.send({ success: true, data: null });
   },
