@@ -1,0 +1,189 @@
+stages:
+  - lint
+  - test
+  - build
+  - security
+  - deploy-staging
+  - deploy-production
+
+variables:
+  NODE_VERSION: '24.19.0'
+  REGISTRY: registry.gitlab.com
+  IMAGE_NAME: $CI_REGISTRY_IMAGE/backend
+  POSTGRES_DB: zita_test
+  POSTGRES_USER: test
+  POSTGRES_PASSWORD: testpass
+
+.node_setup:
+  image: node:24.19.0-alpine
+  cache:
+    paths:
+      - backend/node_modules
+      - .cache/npm
+  before_script:
+    - cd backend
+    - npm ci --cache .cache/npm
+
+lint:
+  extends: .node_setup
+  stage: lint
+  script:
+    - npm run lint --if-present
+    - npm run type-check --if-present
+  only:
+    - merge_requests
+    - main
+    - develop
+
+test:
+  extends: .node_setup
+  stage: test
+  image: node:24.19.0
+  services:
+    - postgres:16
+    - redis:7
+  variables:
+    POSTGRES_DB: zita_test
+    POSTGRES_USER: test
+    POSTGRES_PASSWORD: testpass
+    POSTGRES_HOST_AUTH_METHOD: trust
+  before_script:
+    - cd backend
+    - npm ci
+    - mkdir -p ./keys
+    - openssl genrsa -out ./keys/test-jwt-secret.key 2048
+    - openssl rsa -in ./keys/test-jwt-secret.key -pubout -out ./keys/test-jwt-public.key
+    - npx prisma migrate deploy --preview-feature
+  script:
+    - npm run test
+    - npm run test:coverage --if-present
+  coverage: '/Lines.*?(\d+\.\d+)%/'
+  artifacts:
+    reports:
+      junit: junit.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/coverage-final.json
+    paths:
+      - coverage/
+    expire_in: 30 days
+  only:
+    - merge_requests
+    - main
+    - develop
+
+build:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - cd backend
+    - |
+      docker build \
+        --tag $IMAGE_NAME:$CI_COMMIT_SHA \
+        --tag $IMAGE_NAME:$CI_COMMIT_REF_SLUG \
+        --tag $IMAGE_NAME:latest \
+        .
+    - docker push $IMAGE_NAME:$CI_COMMIT_SHA
+    - docker push $IMAGE_NAME:$CI_COMMIT_REF_SLUG
+    - if [ "$CI_COMMIT_BRANCH" == "main" ]; then docker push $IMAGE_NAME:latest; fi
+  only:
+    - main
+    - develop
+
+security_scan:
+  extends: .node_setup
+  stage: security
+  script:
+    - npm audit --audit-level=moderate || true
+  allow_failure: true
+  only:
+    - merge_requests
+    - main
+    - develop
+
+sast:
+  extends: .node_setup
+  stage: security
+  script:
+    - npm install -g snyk
+    - snyk auth $SNYK_TOKEN || true
+    - snyk test --severity-threshold=high || true
+  allow_failure: true
+  only:
+    - merge_requests
+    - main
+    - develop
+
+dependency_scanning:
+  extends: .node_setup
+  stage: security
+  allow_failure: true
+  script:
+    - npm audit --json > dependency-scanning-report.json || true
+  artifacts:
+    reports:
+      dependency_scanning: dependency-scanning-report.json
+  only:
+    - merge_requests
+    - main
+    - develop
+
+deploy_staging:
+  stage: deploy-staging
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client git
+    - mkdir -p ~/.ssh
+    - echo "$STAGING_DEPLOY_KEY" > ~/.ssh/deploy_key
+    - chmod 600 ~/.ssh/deploy_key
+    - ssh-keyscan -H $STAGING_HOST >> ~/.ssh/known_hosts 2>/dev/null
+  script:
+    - ssh -i ~/.ssh/deploy_key $STAGING_USER@$STAGING_HOST "cd /app && git pull origin develop && npm install && npm run build && npm run migrate:prod && pm2 restart zita-backend"
+  environment:
+    name: staging
+    url: https://staging-api.zita.app
+  only:
+    - develop
+  when: manual
+
+deploy_production:
+  stage: deploy-production
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client git curl
+    - mkdir -p ~/.ssh
+    - echo "$PROD_DEPLOY_KEY" > ~/.ssh/deploy_key
+    - chmod 600 ~/.ssh/deploy_key
+    - ssh-keyscan -H $PROD_HOST >> ~/.ssh/known_hosts 2>/dev/null
+  script:
+    - ssh -i ~/.ssh/deploy_key $PROD_USER@$PROD_HOST "cd /app && git pull origin main && npm install && npm run build && npm run migrate:prod && pm2 restart zita-backend"
+    - |
+      curl -X POST $SLACK_WEBHOOK \
+        -H 'Content-Type: application/json' \
+        -d "{\"text\": \"ZITA Backend deployed to production ✅\", \"blocks\": [{\"type\": \"section\", \"text\": {\"type\": \"mrkdwn\", \"text\": \"*ZITA Backend Production Deployment*\n*Commit:* $CI_COMMIT_SHA\n*Author:* $GITLAB_USER_LOGIN\n*Status:* ✅ Deployed\"}}]}"
+  environment:
+    name: production
+    url: https://api.zita.app
+  only:
+    - main
+  when: manual
+
+pages:
+  stage: deploy-production
+  extends: .node_setup
+  script:
+    - npm run test:coverage --if-present
+    - mkdir -p public
+    - cp -r coverage/* public/ || true
+  artifacts:
+    paths:
+      - public
+  only:
+    - main

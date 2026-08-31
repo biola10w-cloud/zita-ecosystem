@@ -1,0 +1,396 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  READER
+  AUTHOR
+  MODERATOR
+  ADMIN
+}
+
+enum DevicePlatform {
+  IOS
+  ANDROID
+  WEB
+}
+
+enum ContentType {
+  BOOK
+  STORY
+  SUMMARY
+}
+
+enum TranslationStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
+enum SubscriptionPlatform {
+  IOS
+  ANDROID
+  STRIPE
+}
+
+enum ReportReason {
+  SPAM
+  HARASSMENT
+  SPOILER
+  INAPPROPRIATE
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  ACTIONED
+  DISMISSED
+}
+
+model User {
+  id                String   @id @default(uuid())
+  email             String   @unique
+  passwordHash      String
+  displayName       String
+  avatarUrl         String?
+  role              Role     @default(READER)
+  preferredLanguage String   @default("en")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  devices           Device[]
+  sessions          Session[]
+  subscription      Subscription?
+  comments          Comment[]
+  commentLikes      CommentLike[]
+  bookLikes         BookLike[]
+  purchases         Purchase[]
+  readingProgress   ReadingProgress[]
+  highlights        Highlight[]
+  offlineKeys       OfflineKey[]
+  analyticsEvents   AnalyticsEvent[]
+  reports           Report[]
+  authoredBooks     Book[]   @relation("AuthorBooks")
+}
+
+model Device {
+  id          String          @id @default(uuid())
+  userId      String
+  fingerprint String
+  platform    DevicePlatform
+  lastSeenAt  DateTime        @default(now())
+  createdAt   DateTime        @default(now())
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessions    Session[]
+  offlineKeys OfflineKey[]
+  @@unique([userId, fingerprint])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  deviceId     String
+  refreshToken String
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device       Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
+
+model Book {
+  id                String       @id @default(uuid())
+  slug              String       @unique
+  title             String
+  authorName        String
+  description       String?
+  coverUrl          String?
+  contentType       ContentType  @default(BOOK)
+  language          String       @default("en")
+  totalChapters     Int          @default(0)
+  estimatedMinutes  Int          @default(0)
+  isPremium         Boolean      @default(false)
+  price             Decimal?     @db.Decimal(10, 2)
+  isPublished       Boolean      @default(false)
+  publishedAt       DateTime?
+  encryptedFileKey  String?
+  fileIv            String?
+  fileAuthTag       String?
+  categoryId        String?
+  // Set only when a platform Author self-publishes their own original
+  // book. Admin-uploaded summaries of external authors leave this null.
+  authorId          String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  category          Category?    @relation(fields: [categoryId], references: [id])
+  author            User?        @relation("AuthorBooks", fields: [authorId], references: [id])
+  chapters          Chapter[]
+  translations      BookTranslation[]
+  audioTracks       AudioTrack[]
+  tags              BookTag[]
+  likes             BookLike[]
+  comments          Comment[]
+  purchases         Purchase[]
+  readingProgress   ReadingProgress[]
+  highlights        Highlight[]
+  offlineKeys       OfflineKey[]
+  analyticsEvents   AnalyticsEvent[]
+  @@index([categoryId])
+  @@index([authorId])
+}
+
+model Category {
+  id        String     @id @default(uuid())
+  name      String
+  slug      String     @unique
+  icon      String?
+  parentId  String?
+  parent    Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Category[] @relation("CategoryHierarchy")
+  createdAt DateTime   @default(now())
+  books     Book[]
+  @@unique([parentId, name])
+  @@index([parentId])
+}
+
+model Chapter {
+  id          String   @id @default(uuid())
+  bookId      String
+  chapterIndex Int
+  title       String
+  wordCount   Int      @default(0)
+  encryptedKey String?
+  iv          String?
+  authTag     String?
+  book        Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  @@unique([bookId, chapterIndex])
+}
+
+model Tag {
+  id    String    @id @default(uuid())
+  name  String    @unique
+  books BookTag[]
+}
+
+model BookTag {
+  bookId String
+  tagId  String
+  book   Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  @@id([bookId, tagId])
+}
+
+model BookTranslation {
+  id                  String            @id @default(uuid())
+  bookId              String
+  language            String
+  status              TranslationStatus @default(PENDING)
+  translatedTitle     String?
+  translatedDescription String?
+  encryptedFileKey    String?
+  iv                  String?
+  authTag             String?
+  completedAt         DateTime?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  book                Book              @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  chapters            TranslatedChapter[]
+  @@unique([bookId, language])
+}
+
+// Per-chapter IV/authTag for a translation's re-encrypted content —
+// each chapter gets its own GCM nonce, unlike the book-level placeholder
+// previously stored on BookTranslation.
+model TranslatedChapter {
+  id            String          @id @default(uuid())
+  translationId String
+  chapterIndex  Int
+  s3Key         String
+  iv            String
+  authTag       String
+  createdAt     DateTime        @default(now())
+  translation   BookTranslation @relation(fields: [translationId], references: [id], onDelete: Cascade)
+  @@unique([translationId, chapterIndex])
+}
+
+// One audio track per (book, language) — "listen to the book" (TTS).
+// Mirrors BookTranslation: a shared wrapped key (encryptedKey) covers all
+// chapters of this track; each chapter's audio file has its own IV/authTag.
+model AudioTrack {
+  id           String            @id @default(uuid())
+  bookId       String
+  language     String
+  voiceId      String
+  status       TranslationStatus @default(PENDING)
+  encryptedKey String?           // wrapped audio BEK (KMS), set once processing starts
+  completedAt  DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  book         Book              @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  chapters     ChapterAudio[]
+  @@unique([bookId, language])
+}
+
+model ChapterAudio {
+  id              String     @id @default(uuid())
+  audioTrackId    String
+  chapterIndex    Int
+  s3Key           String
+  iv              String
+  authTag         String
+  durationSeconds Int?
+  createdAt       DateTime   @default(now())
+  audioTrack      AudioTrack @relation(fields: [audioTrackId], references: [id], onDelete: Cascade)
+  @@unique([audioTrackId, chapterIndex])
+}
+
+model ReadingProgress {
+  id             String    @id @default(uuid())
+  userId         String
+  bookId         String
+  chapterIndex   Int       @default(0)
+  scrollPosition Float     @default(0)
+  percentComplete Float    @default(0)
+  lastReadAt     DateTime  @default(now())
+  completedAt    DateTime?
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book           Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  @@unique([userId, bookId])
+}
+
+model Highlight {
+  id          String   @id @default(uuid())
+  userId      String
+  bookId      String
+  chapterIndex Int
+  startOffset Int
+  endOffset   Int
+  text        String
+  color       String   @default("yellow")
+  note        String?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book        Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+}
+
+model BookLike {
+  userId    String
+  bookId    String
+  createdAt DateTime @default(now())
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book      Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  @@id([userId, bookId])
+}
+
+model Comment {
+  id         String    @id @default(uuid())
+  userId     String
+  bookId     String
+  parentId   String?
+  body       String
+  isDeleted  Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book       Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  parent     Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies    Comment[] @relation("CommentReplies")
+  likes      CommentLike[]
+  reports    Report[]
+}
+
+model CommentLike {
+  userId    String
+  commentId String
+  createdAt DateTime @default(now())
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment   Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  @@id([userId, commentId])
+}
+
+model Report {
+  id         String       @id @default(uuid())
+  commentId  String
+  reporterId String
+  reason     ReportReason
+  details    String?
+  status     ReportStatus @default(PENDING)
+  reviewedAt DateTime?
+  createdAt  DateTime     @default(now())
+  comment    Comment      @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  reporter   User         @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+}
+
+model Subscription {
+  id                    String               @id @default(uuid())
+  userId                String               @unique
+  status                SubscriptionStatus
+  platform              SubscriptionPlatform
+  platformProductId     String
+  platformTransactionId String
+  originalTransactionId String
+  // Set only when platform = STRIPE (web checkout: card, Apple Pay,
+  // Google Pay via Payment Request, and PayPal)
+  stripeCustomerId      String?
+  stripeSubscriptionId  String?              @unique
+  currentPeriodStart    DateTime
+  currentPeriodEnd      DateTime
+  trialStart            DateTime?
+  trialEnd              DateTime?
+  cancelledAt           DateTime?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  user                  User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Purchase {
+  id        String   @id @default(uuid())
+  userId    String
+  bookId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  @@unique([userId, bookId])
+}
+
+model OfflineKey {
+  id                   String   @id @default(uuid())
+  userId               String
+  deviceId             String
+  bookId               String
+  encryptedDecryptionKey String
+  validUntil           DateTime
+  revokedAt            DateTime?
+  createdAt            DateTime @default(now())
+  user                User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device              Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  book                Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  @@unique([userId, deviceId, bookId])
+}
+
+model AnalyticsEvent {
+  id         String   @id @default(uuid())
+  userId     String?
+  bookId     String?
+  eventType  String
+  properties Json
+  occurredAt DateTime @default(now())
+  user       User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  book       Book? @relation(fields: [bookId], references: [id], onDelete: SetNull)
+  @@index([eventType, occurredAt])
+  @@index([userId, occurredAt])
+}

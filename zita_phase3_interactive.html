@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZITA — Backend Architecture</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700;800&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:      #0A0A14;
+    --surface: #10101E;
+    --card:    #16162A;
+    --border:  #1E1E38;
+    --accent:  #E8B84B;
+    --blue:    #4A90E2;
+    --green:   #2ECC71;
+    --purple:  #8B5CF6;
+    --red:     #E74C3C;
+    --orange:  #F39C12;
+    --text:    #E8E8F0;
+    --muted:   #6B6B8A;
+    --mono:    'DM Mono', monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    padding: 32px 24px;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 36px;
+  }
+
+  .logo { width: 36px; height: 36px; background: var(--accent); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; color: #0A0A14; }
+  .logo-text { font-size: 18px; font-weight: 800; letter-spacing: 3px; }
+  .phase-badge { margin-left: 8px; background: var(--purple); color: white; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; letter-spacing: 1px; }
+
+  /* Module tabs */
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 28px; }
+  .tab { padding: 7px 16px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .tab:hover { border-color: var(--accent); color: var(--accent); }
+  .tab.active { background: var(--accent); border-color: var(--accent); color: #0A0A14; font-weight: 700; }
+
+  /* Main layout */
+  .main { display: grid; grid-template-columns: 340px 1fr; gap: 20px; }
+
+  /* Module cards */
+  .module-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .module-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .module-icon { font-size: 18px; }
+  .module-title { font-size: 14px; font-weight: 700; }
+  .module-badge { margin-left: auto; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
+  .badge-api { background: rgba(74,144,226,0.2); color: var(--blue); }
+  .badge-worker { background: rgba(139,92,246,0.2); color: var(--purple); }
+  .badge-security { background: rgba(231,76,60,0.2); color: var(--red); }
+
+  /* Route list */
+  .route-list { padding: 12px; display: flex; flex-direction: column; gap: 4px; }
+
+  .route-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border: 1px solid transparent;
+  }
+
+  .route-item:hover { background: rgba(255,255,255,0.04); }
+  .route-item.selected { background: rgba(232,184,75,0.08); border-color: rgba(232,184,75,0.2); }
+
+  .method {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 7px;
+    border-radius: 4px;
+    min-width: 46px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .get    { background: rgba(46,204,113,0.15); color: #2ECC71; }
+  .post   { background: rgba(74,144,226,0.15); color: #4A90E2; }
+  .put    { background: rgba(243,156,18,0.15); color: #F39C12; }
+  .delete { background: rgba(231,76,60,0.15);  color: #E74C3C; }
+
+  .route-path { font-family: var(--mono); font-size: 12px; color: var(--text); flex: 1; }
+  .route-auth { font-size: 10px; color: var(--accent); }
+
+  /* Right panel */
+  .detail-panel { display: flex; flex-direction: column; gap: 16px; }
+
+  .detail-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .detail-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .detail-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+  .detail-body { padding: 20px; }
+
+  /* Code block */
+  .code-block {
+    background: #0D0D1A;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.7;
+    overflow-x: auto;
+    color: #C8C8E8;
+  }
+
+  .code-block .kw  { color: #C792EA; }  /* keyword */
+  .code-block .fn  { color: #82AAFF; }  /* function */
+  .code-block .str { color: #C3E88D; }  /* string */
+  .code-block .num { color: #F78C6C; }  /* number */
+  .code-block .cmt { color: #546E7A; font-style: italic; }  /* comment */
+  .code-block .type { color: #FFCB6B; }  /* type */
+  .code-block .prop { color: #89DDFF; }  /* property */
+
+  /* Security flow */
+  .flow-steps { display: flex; flex-direction: column; gap: 8px; }
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .step-num {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #0A0A14;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .step-content { flex: 1; }
+  .step-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  .step-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  /* Metrics grid */
+  .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .metric {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .metric-value { font-size: 22px; font-weight: 700; color: var(--accent); }
+  .metric-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* Architecture diagram */
+  .arch-diagram { padding: 0; }
+
+  .layer {
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+  }
+  .layer:last-child { border-bottom: none; }
+  .layer-label { font-size: 10px; font-weight: 600; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; }
+  .layer-nodes { display: flex; flex-wrap: wrap; gap: 8px; }
+  .node {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .node-api    { background: rgba(74,144,226,0.12); color: #4A90E2; border: 1px solid rgba(74,144,226,0.2); }
+  .node-db     { background: rgba(46,204,113,0.12); color: #2ECC71; border: 1px solid rgba(46,204,113,0.2); }
+  .node-queue  { background: rgba(139,92,246,0.12); color: #8B5CF6; border: 1px solid rgba(139,92,246,0.2); }
+  .node-store  { background: rgba(232,184,75,0.12); color: #E8B84B; border: 1px solid rgba(232,184,75,0.2); }
+  .node-ext    { background: rgba(231,76,60,0.12);  color: #E74C3C; border: 1px solid rgba(231,76,60,0.2); }
+  .node-arrow  { color: var(--muted); font-size: 14px; margin: 0 4px; align-self: center; }
+
+  .highlight-box {
+    background: rgba(232,184,75,0.06);
+    border: 1px solid rgba(232,184,75,0.2);
+    border-radius: 10px;
+    padding: 14px;
+    margin-top: 12px;
+  }
+  .highlight-title { font-size: 12px; font-weight: 600; color: var(--accent); margin-bottom: 6px; }
+  .highlight-text { font-size: 12px; color: var(--muted); line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Z</div>
+  <div class="logo-text">ZITA</div>
+  <div class="phase-badge">PHASE 3 — BACKEND</div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="showModule('auth', this)">Auth</button>
+  <button class="tab" onclick="showModule('books', this)">Books</button>
+  <button class="tab" onclick="showModule('reader', this)">Reader</button>
+  <button class="tab" onclick="showModule('community', this)">Community</button>
+  <button class="tab" onclick="showModule('subscriptions', this)">Subscriptions</button>
+  <button class="tab" onclick="showModule('offline', this)">Offline</button>
+  <button class="tab" onclick="showModule('analytics', this)">Analytics</button>
+  <button class="tab" onclick="showModule('admin', this)">Admin</button>
+  <button class="tab" onclick="showModule('arch', this)">Architecture</button>
+</div>
+
+<div class="main">
+  <!-- LEFT: Route list -->
+  <div class="module-card" id="route-panel">
+    <div class="module-header">
+      <div class="module-icon" id="mod-icon">🔐</div>
+      <div class="module-title" id="mod-title">Auth Module</div>
+      <div class="module-badge badge-api" id="mod-badge">API</div>
+    </div>
+    <div class="route-list" id="route-list"></div>
+  </div>
+
+  <!-- RIGHT: Detail panel -->
+  <div class="detail-panel" id="detail-panel"></div>
+</div>
+
+<script>
+const modules = {
+  auth: {
+    icon: '🔐', title: 'Auth Module', badge: 'badge-api', badgeText: 'API',
+    routes: [
+      { method: 'POST', path: '/auth/register',  auth: false, key: 'register' },
+      { method: 'POST', path: '/auth/login',     auth: false, key: 'login' },
+      { method: 'POST', path: '/auth/refresh',   auth: false, key: 'refresh' },
+      { method: 'POST', path: '/auth/logout',    auth: true,  key: 'logout' },
+      { method: 'GET',  path: '/auth/me',        auth: true,  key: 'me' },
+    ],
+    details: {
+      register: {
+        title: 'POST /auth/register',
+        flow: [
+          { title: 'Validate input', desc: 'Zod schema: email, password (min 8), displayName, deviceFingerprint, platform' },
+          { title: 'Hash password', desc: 'bcrypt with 12 rounds — ~200ms deliberate delay prevents brute force' },
+          { title: 'Create user + device', desc: 'Single DB transaction — atomically creates user and binds first device' },
+          { title: 'Issue RS256 JWT', desc: '15-min access token signed with private key; 30-day refresh token stored as bcrypt hash' },
+          { title: 'Return tokens', desc: 'Raw refresh token returned once only — never stored in plaintext in DB' },
+        ],
+        code: `<span class="cmt">// auth.service.ts — register</span>
+<span class="kw">const</span> <span class="prop">passwordHash</span> = <span class="kw">await</span> <span class="fn">bcrypt.hash</span>(password, <span class="num">12</span>);
+
+<span class="kw">const</span> { user, device } = <span class="kw">await</span> prisma.<span class="fn">$transaction</span>(<span class="kw">async</span> (tx) => {
+  <span class="kw">const</span> user = <span class="kw">await</span> tx.user.<span class="fn">create</span>({ data: { email, passwordHash, displayName } });
+  <span class="kw">const</span> device = <span class="kw">await</span> tx.device.<span class="fn">create</span>({
+    data: { userId: user.id, fingerprint: deviceFingerprint, platform }
+  });
+  <span class="kw">return</span> { user, device };
+});
+
+<span class="cmt">// RS256 JWT — asymmetric: verify with public key only</span>
+<span class="kw">const</span> accessToken = jwt.<span class="fn">sign</span>({ sub: user.id, role, deviceId }, privateKey, {
+  algorithm: <span class="str">'RS256'</span>, expiresIn: <span class="str">'15m'</span>
+});`
+      },
+      login: {
+        title: 'POST /auth/login',
+        flow: [
+          { title: 'Lookup user by email', desc: 'Case-insensitive email lookup in PostgreSQL' },
+          { title: 'Constant-time comparison', desc: 'bcrypt.compare runs even for non-existent users — prevents timing attacks that reveal valid emails' },
+          { title: 'Device upsert', desc: 'Same fingerprint = update lastSeen. New fingerprint = new device binding' },
+          { title: 'Token rotation', desc: 'New access + refresh tokens issued on every login' },
+        ],
+        code: `<span class="cmt">// Timing-safe: always run bcrypt even for missing users</span>
+<span class="kw">const</span> passwordMatch = user?.passwordHash
+  ? <span class="kw">await</span> <span class="fn">bcrypt.compare</span>(password, user.passwordHash)
+  : <span class="kw">await</span> <span class="fn">bcrypt.compare</span>(password, <span class="str">'$2b$12$invalid...'</span>);
+<span class="cmt">// ↑ Same ~200ms delay whether user exists or not</span>
+
+<span class="kw">if</span> (!user || !passwordMatch) {
+  <span class="kw">throw</span> { code: <span class="str">'INVALID_CREDENTIALS'</span>, statusCode: <span class="num">401</span> };
+}`
+      },
+      refresh: {
+        title: 'POST /auth/refresh',
+        flow: [
+          { title: 'Find session by token hash', desc: 'Scan non-revoked sessions, bcrypt.compare against stored hash' },
+          { title: 'Single-use rotation', desc: 'Old session immediately revoked; new tokens issued in same transaction' },
+          { title: 'Detect token reuse', desc: 'If old token is used after rotation → both sessions revoked (compromise detected)' },
+        ],
+        code: `<span class="cmt">// Atomic rotation in single DB transaction</span>
+<span class="kw">const</span> newTokens = <span class="kw">await</span> prisma.<span class="fn">$transaction</span>(<span class="kw">async</span> (tx) => {
+  <span class="cmt">// 1. Revoke old session immediately</span>
+  <span class="kw">await</span> tx.session.<span class="fn">update</span>({
+    where: { id: matched.id },
+    data:  { revokedAt: <span class="kw">new</span> <span class="fn">Date</span>() }
+  });
+  <span class="cmt">// 2. Issue new tokens</span>
+  <span class="kw">return</span> <span class="fn">issueTokens</span>(user, deviceId, tx);
+});`
+      },
+    }
+  },
+
+  books: {
+    icon: '📚', title: 'Books Module', badge: 'badge-api', badgeText: 'API',
+    routes: [
+      { method: 'GET',    path: '/books',           auth: false, key: 'list' },
+      { method: 'GET',    path: '/books/featured',  auth: false, key: 'featured' },
+      { method: 'GET',    path: '/books/trending',  auth: false, key: 'trending' },
+      { method: 'GET',    path: '/books/:slug',     auth: false, key: 'getOne' },
+      { method: 'POST',   path: '/books/:slug/like', auth: true, key: 'like' },
+      { method: 'DELETE', path: '/books/:slug/like', auth: true, key: 'unlike' },
+    ],
+    details: {
+      list: {
+        title: 'GET /books — List with filters',
+        flow: [
+          { title: 'Query params', desc: 'type (BOOK|STORY|SUMMARY), language (ISO 639-1), tag, page, limit' },
+          { title: 'Pagination', desc: 'Offset-based pagination with total count for UI paging' },
+          { title: 'Tag filtering', desc: 'Many-to-many join through BookTag junction table' },
+        ],
+        code: `<span class="kw">const</span> where = {
+  isPublished: <span class="kw">true</span>,
+  ...(type     && { contentType: type }),
+  ...(language && { language }),
+  ...(tag && { tags: { some: { tag: { name: tag } } } }),
+};
+
+<span class="kw">const</span> [books, total] = <span class="kw">await</span> <span class="fn">Promise.all</span>([
+  prisma.book.<span class="fn">findMany</span>({ where, skip, take: limit }),
+  prisma.book.<span class="fn">count</span>({ where }),
+]);`
+      },
+      trending: {
+        title: 'GET /books/trending — Activity-based',
+        flow: [
+          { title: 'Query analytics', desc: 'Groups chapter_open events from last 7 days by bookId' },
+          { title: 'Sort by count', desc: 'Books with most reading activity rank highest' },
+          { title: 'Fallback', desc: 'New platforms with no data fall back to featured list' },
+        ],
+        code: `<span class="cmt">// Analytics-driven trending: most read in 7 days</span>
+<span class="kw">const</span> topBookIds = <span class="kw">await</span> prisma.analyticsEvent.<span class="fn">groupBy</span>({
+  by: [<span class="str">'bookId'</span>],
+  where: { eventType: <span class="str">'chapter_open'</span>, occurredAt: { gte: sevenDaysAgo } },
+  _count: { bookId: <span class="kw">true</span> },
+  orderBy: { _count: { bookId: <span class="str">'desc'</span> } },
+  take: <span class="num">20</span>,
+});`
+      },
+    }
+  },
+
+  reader: {
+    icon: '📖', title: 'Reader Module', badge: 'badge-security', badgeText: 'ENCRYPTED',
+    routes: [
+      { method: 'GET',  path: '/books/:slug/chapters/:i/content', auth: true, key: 'content' },
+      { method: 'POST', path: '/books/:slug/progress',            auth: true, key: 'progress' },
+      { method: 'GET',  path: '/books/:slug/progress',            auth: true, key: 'getProgress' },
+      { method: 'POST', path: '/books/:slug/highlights',          auth: true, key: 'highlight' },
+      { method: 'GET',  path: '/books/:slug/highlights',          auth: true, key: 'getHighlights' },
+    ],
+    details: {
+      content: {
+        title: 'GET /chapters/:i/content — Encrypted Delivery',
+        flow: [
+          { title: 'Access check', desc: 'Verify active subscription OR individual purchase for this book' },
+          { title: 'Fetch ciphertext', desc: 'Download encrypted chapter bytes from S3/R2 (never raw text on disk)' },
+          { title: 'KMS unwrap', desc: 'Call AWS KMS to decrypt the wrapped Book Encryption Key (BEK)' },
+          { title: 'AES-256-GCM decrypt', desc: 'Decrypt chapter with BEK; authTag verifies content integrity — detects tampering' },
+          { title: 'Return plaintext', desc: 'UTF-8 text returned in response body. Lives in memory only — never written to disk.' },
+          { title: 'Track analytics', desc: 'chapter_open event queued asynchronously — does not block response' },
+        ],
+        code: `<span class="cmt">// Envelope encryption: KMS → BEK → Chapter</span>
+<span class="kw">const</span> ciphertext = <span class="kw">await</span> S3.<span class="fn">downloadEncryptedContent</span>(chapter.encryptedKey);
+<span class="kw">const</span> bek        = <span class="kw">await</span> KMS.<span class="fn">unwrapKey</span>(book.encryptedFileKey);
+<span class="kw">const</span> plaintext  = BookCrypto.<span class="fn">decrypt</span>({ iv, authTag, ciphertext }, bek);
+<span class="cmt">// ↑ GCM authTag throws if content was tampered with</span>
+
+<span class="cmt">// Async analytics — don't block the response</span>
+prisma.analyticsEvent.<span class="fn">create</span>({ ... }).<span class="fn">catch</span>(() => {});`
+      },
+    }
+  },
+
+  community: {
+    icon: '💬', title: 'Community Module', badge: 'badge-api', badgeText: 'API',
+    routes: [
+      { method: 'GET',    path: '/books/:slug/comments',     auth: false, key: 'list' },
+      { method: 'POST',   path: '/books/:slug/comments',     auth: true,  key: 'create' },
+      { method: 'PUT',    path: '/comments/:id',             auth: true,  key: 'update' },
+      { method: 'DELETE', path: '/comments/:id',             auth: true,  key: 'delete' },
+      { method: 'POST',   path: '/comments/:id/like',        auth: true,  key: 'like' },
+      { method: 'DELETE', path: '/comments/:id/like',        auth: true,  key: 'unlike' },
+      { method: 'POST',   path: '/comments/:id/report',      auth: true,  key: 'report' },
+      { method: 'GET',    path: '/comments/:id/replies',     auth: false, key: 'replies' },
+    ],
+    details: {
+      create: {
+        title: 'POST /books/:slug/comments',
+        flow: [
+          { title: 'Validate body', desc: 'Max 2000 chars, trim whitespace, optional parentId for reply' },
+          { title: 'Nesting limit', desc: 'Replies to replies rejected — max 1 level deep to keep UI manageable' },
+          { title: 'Create comment', desc: 'Stored with userId, bookId, parentId. Body trimmed.' },
+        ],
+        code: `<span class="cmt">// Prevent deep nesting (replies-to-replies)</span>
+<span class="kw">if</span> (parentId) {
+  <span class="kw">const</span> parent = <span class="kw">await</span> prisma.comment.<span class="fn">findFirst</span>({ where: { id: parentId } });
+  <span class="kw">if</span> (parent.parentId !== <span class="kw">null</span>) {
+    <span class="kw">throw</span> { code: <span class="str">'NESTING_TOO_DEEP'</span>, statusCode: <span class="num">400</span> };
+  }
+}
+<span class="cmt">// Soft-delete: preserve thread structure</span>
+data: { isDeleted: <span class="kw">true</span>, body: <span class="str">'[This comment has been deleted]'</span> }`
+      },
+    }
+  },
+
+  subscriptions: {
+    icon: '💳', title: 'Subscriptions Module', badge: 'badge-api', badgeText: 'IAP',
+    routes: [
+      { method: 'GET',  path: '/subscriptions/plans',           auth: false, key: 'plans' },
+      { method: 'GET',  path: '/subscriptions/me',              auth: true,  key: 'me' },
+      { method: 'POST', path: '/subscriptions/verify',          auth: true,  key: 'verify' },
+      { method: 'POST', path: '/subscriptions/webhooks/apple',  auth: false, key: 'apple_wh' },
+      { method: 'POST', path: '/subscriptions/webhooks/google', auth: false, key: 'google_wh' },
+    ],
+    details: {
+      verify: {
+        title: 'POST /subscriptions/verify — IAP Verification',
+        flow: [
+          { title: 'Receive receipt from app', desc: 'iOS: base64 StoreKit receipt. Android: purchaseToken from Play Billing' },
+          { title: 'Call Apple/Google server API', desc: 'Server-to-server verification — never trust client claims. Apple: verifyReceipt. Google: purchases.subscriptions.get' },
+          { title: 'Parse response', desc: 'Extract productId, expiresAt, isTrial, isCancelled from platform response' },
+          { title: 'Determine status', desc: 'Map to: TRIALING, ACTIVE, PAST_DUE, CANCELLED, EXPIRED' },
+          { title: 'Upsert subscription', desc: 'Idempotent — safe to call multiple times. Updates existing record with latest state.' },
+        ],
+        code: `<span class="cmt">// Apple: try production first, fallback to sandbox</span>
+<span class="kw">let</span> response = <span class="kw">await</span> <span class="fn">callApple</span>(PRODUCTION_URL, receipt);
+<span class="kw">if</span> (response.status === <span class="num">21007</span>) <span class="cmt">// sandbox receipt</span>
+  response = <span class="kw">await</span> <span class="fn">callApple</span>(SANDBOX_URL, receipt);
+
+<span class="cmt">// Google: Play Developer API with service account</span>
+<span class="kw">const</span> sub = <span class="kw">await</span> androidPublisher.purchases.subscriptions.<span class="fn">get</span>({
+  packageName: <span class="str">'com.zita.app'</span>,
+  subscriptionId: productId,
+  token: purchaseToken,
+});`
+      },
+      apple_wh: {
+        title: 'Apple S2S Webhook — Real-time Updates',
+        flow: [
+          { title: 'DID_RENEW', desc: 'Subscription renewed → set status ACTIVE, update currentPeriodEnd' },
+          { title: 'CANCEL / REFUND', desc: 'Cancelled → set CANCELLED, revoke all offline keys for user' },
+          { title: 'DID_FAIL_TO_RENEW', desc: 'Billing failure → set PAST_DUE, grace period' },
+          { title: 'DID_CHANGE_RENEWAL_STATUS', desc: 'Auto-renew toggled → no status change until expiry' },
+        ],
+        code: `<span class="kw">switch</span> (notification_type) {
+  <span class="kw">case</span> <span class="str">'CANCEL'</span>:
+  <span class="kw">case</span> <span class="str">'REFUND'</span>:
+    <span class="kw">await</span> prisma.subscription.<span class="fn">update</span>({
+      data: { status: <span class="str">'CANCELLED'</span>, cancelledAt: <span class="kw">new</span> <span class="fn">Date</span>() }
+    });
+    <span class="cmt">// Immediately revoke offline access</span>
+    <span class="kw">await</span> <span class="fn">revokeOfflineKeys</span>(userId);
+    <span class="kw">break</span>;
+}`
+      }
+    }
+  },
+
+  offline: {
+    icon: '🔒', title: 'Offline Module', badge: 'badge-security', badgeText: 'CRYPTO',
+    routes: [
+      { method: 'POST',   path: '/books/:slug/offline-key', auth: true, key: 'grant' },
+      { method: 'DELETE', path: '/books/:slug/offline-key', auth: true, key: 'revoke' },
+      { method: 'GET',    path: '/books/offline',           auth: true, key: 'list' },
+    ],
+    details: {
+      grant: {
+        title: 'POST /offline-key — Device-Locked Key Delivery',
+        flow: [
+          { title: 'Reject compromised devices', desc: 'App sends isDeviceCompromised flag (from RootBeer/JailbreakDetection). Rooted devices refused.' },
+          { title: 'Verify device ownership', desc: 'Device must belong to this user in the DB' },
+          { title: 'Check subscription', desc: 'Active subscription or individual purchase required' },
+          { title: 'Unwrap BEK from KMS', desc: 'AWS KMS decrypts the book encryption key into memory' },
+          { title: 'Re-encrypt for device', desc: 'BEK encrypted with device RSA public key (hardware-generated, lives in Secure Enclave / Android Keystore)' },
+          { title: 'Store OfflineKey record', desc: 'Encrypted BEK stored with expiry = min(sub expiry, now+30d)' },
+          { title: 'Return to device', desc: 'App stores encrypted BEK in SecureStorage. Decrypts with hardware private key at read time.' },
+        ],
+        code: `<span class="cmt">// Envelope encryption for device-locked offline access</span>
+<span class="kw">const</span> bek = <span class="kw">await</span> KMS.<span class="fn">unwrapKey</span>(book.encryptedFileKey);
+<span class="kw">const</span> bekHex = bek.<span class="fn">toString</span>(<span class="str">'hex'</span>);
+
+<span class="cmt">// RSA-OAEP: only this device's hardware key can decrypt</span>
+<span class="kw">const</span> deviceEncryptedBek = crypto.<span class="fn">publicEncrypt</span>({
+  key: devicePublicKeyPem,
+  padding: RSA_PKCS1_OAEP_PADDING,
+  oaepHash: <span class="str">'sha256'</span>,
+}, Buffer.<span class="fn">from</span>(bekHex, <span class="str">'hex'</span>));`
+      }
+    }
+  },
+
+  analytics: {
+    icon: '📊', title: 'Analytics Module', badge: 'badge-api', badgeText: 'API',
+    routes: [
+      { method: 'POST', path: '/analytics/events',    auth: true, key: 'ingest' },
+      { method: 'GET',  path: '/analytics/me',        auth: true, key: 'me' },
+      { method: 'GET',  path: '/analytics/dashboard', auth: true, key: 'dashboard' },
+    ],
+    details: {
+      ingest: {
+        title: 'POST /analytics/events — Batch Ingest',
+        flow: [
+          { title: 'Allowlist validation', desc: 'Only known event types accepted — prevents garbage data injection' },
+          { title: 'Batch createMany', desc: 'Up to 50 events per request — single DB insert is fast' },
+          { title: '202 Accepted', desc: 'Non-blocking fire-and-forget from client perspective' },
+        ],
+        code: `<span class="kw">const</span> allowedEventTypes = <span class="kw">new</span> <span class="fn">Set</span>([
+  <span class="str">'chapter_open'</span>, <span class="str">'reading_session_end'</span>,
+  <span class="str">'book_like'</span>, <span class="str">'search_performed'</span>,
+  <span class="str">'app_opened'</span>, <span class="str">'subscription_started'</span>,
+]);
+<span class="kw">const</span> validEvents = events.<span class="fn">filter</span>(e => allowedEventTypes.<span class="fn">has</span>(e.eventType));
+<span class="kw">await</span> prisma.analyticsEvent.<span class="fn">createMany</span>({ data: validEvents });`
+      },
+      dashboard: {
+        title: 'GET /analytics/dashboard — Admin Stats',
+        flow: [
+          { title: 'Parallel queries', desc: 'Promise.all runs 7 queries simultaneously: users, subs, new users, sessions, top books, DAU' },
+          { title: 'Raw SQL for DAU', desc: 'Daily active users uses raw SQL GROUP BY DATE() — more efficient than Prisma for time-series aggregation' },
+          { title: 'Enrich top books', desc: 'bookIds from analytics joined with book metadata' },
+        ],
+        code: `<span class="cmt">// 7 parallel queries for dashboard speed</span>
+<span class="kw">const</span> [totalUsers, activeSubscriptions, ...] = <span class="kw">await</span> <span class="fn">Promise.all</span>([
+  prisma.user.<span class="fn">count</span>(),
+  prisma.subscription.<span class="fn">count</span>({ where: { status: <span class="str">'ACTIVE'</span> } }),
+  <span class="cmt">// Raw SQL for time-series DAU</span>
+  prisma.<span class="fn">$queryRaw</span>\`
+    SELECT DATE(occurred_at) as date,
+           COUNT(DISTINCT user_id) as active_users
+    FROM analytics_events
+    WHERE occurred_at >= NOW() - INTERVAL '7 days'
+    GROUP BY DATE(occurred_at)
+  \`
+]);`
+      }
+    }
+  },
+
+  admin: {
+    icon: '⚙️', title: 'Admin Module', badge: 'badge-security', badgeText: 'ADMIN ONLY',
+    routes: [
+      { method: 'POST', path: '/admin/books',                auth: true, key: 'create' },
+      { method: 'PUT',  path: '/admin/books/:id/publish',    auth: true, key: 'publish' },
+      { method: 'POST', path: '/admin/translations',         auth: true, key: 'translate' },
+      { method: 'GET',  path: '/admin/users',                auth: true, key: 'users' },
+      { method: 'PUT',  path: '/admin/users/:id/role',       auth: true, key: 'role' },
+      { method: 'GET',  path: '/admin/reports',              auth: true, key: 'reports' },
+      { method: 'PUT',  path: '/admin/reports/:id',          auth: true, key: 'review' },
+    ],
+    details: {
+      create: {
+        title: 'POST /admin/books — Upload + Encrypt Pipeline',
+        flow: [
+          { title: 'Multipart upload', desc: 'Receives: metadata (JSON), content (text file), cover (image). Max 100MB.' },
+          { title: 'Upload raw to temp S3', desc: 'Raw unencrypted file stored at temp/raw/slug.txt — temporary' },
+          { title: 'Upload cover public', desc: 'Cover image uploaded to public CDN path, URL stored in DB' },
+          { title: 'Create book record', desc: 'isPublished=false, encryptedFileKey=\'pending\' — not visible to users yet' },
+          { title: 'Queue encryption job', desc: 'Bull queue → encryption worker processes async: parse chapters, AES-256-GCM encrypt each, delete raw file' },
+          { title: '202 Accepted', desc: 'Admin gets back bookId + encryptionJobId. Publish after job completes.' },
+        ],
+        code: `<span class="cmt">// Async pipeline: upload → encrypt → publish</span>
+<span class="kw">const</span> rawS3Key = <span class="str">\`temp/raw/\${slug}-\${Date.now()}.txt\`</span>;
+<span class="kw">await</span> S3.<span class="fn">uploadEncryptedContent</span>(rawS3Key, rawFileBuffer);
+
+<span class="kw">const</span> book = <span class="kw">await</span> prisma.book.<span class="fn">create</span>({
+  data: { ..., isPublished: <span class="kw">false</span>, encryptedFileKey: <span class="str">'pending'</span> }
+});
+
+<span class="cmt">// Worker picks this up and encrypts chapters async</span>
+<span class="kw">await</span> encryptionQueue.<span class="fn">add</span>({ bookId: book.id, rawS3Key });`
+      }
+    }
+  },
+
+  arch: {
+    icon: '🏗️', title: 'System Architecture', badge: 'badge-api', badgeText: 'OVERVIEW',
+    routes: [],
+    details: {}
+  }
+};
+
+let currentModule = 'auth';
+let selectedRoute = 'register';
+
+function showModule(name, btn) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentModule = name;
+
+  const mod = modules[name];
+  document.getElementById('mod-icon').textContent = mod.icon;
+  document.getElementById('mod-title').textContent = mod.title;
+  const badge = document.getElementById('mod-badge');
+  badge.className = 'module-badge ' + mod.badge;
+  badge.textContent = mod.badgeText;
+
+  const routeList = document.getElementById('route-list');
+
+  if (name === 'arch') {
+    document.getElementById('route-panel').querySelector('.module-header').style.borderBottom = '1px solid var(--border)';
+    routeList.innerHTML = `<div style="padding:16px;color:var(--muted);font-size:12px">Select a module tab to explore its routes and implementation details.</div>`;
+    renderArchDetail();
+    return;
+  }
+
+  routeList.innerHTML = mod.routes.map(r => `
+    <div class="route-item ${r.key === selectedRoute ? 'selected' : ''}"
+         onclick="selectRoute('${r.key}')">
+      <span class="method ${r.method.toLowerCase()}">${r.method}</span>
+      <span class="route-path">${r.path}</span>
+      ${r.auth ? '<span class="route-auth">🔒</span>' : ''}
+    </div>
+  `).join('');
+
+  // Auto-select first route
+  const firstKey = mod.routes[0]?.key;
+  if (firstKey) selectRoute(firstKey);
+}
+
+function selectRoute(key) {
+  selectedRoute = key;
+  document.querySelectorAll('.route-item').forEach(el => {
+    el.classList.toggle('selected', el.querySelector('.route-path')?.textContent.includes(
+      modules[currentModule].routes.find(r => r.key === key)?.path.replace(/:[^/]+/g, ':x') ?? ''
+    ));
+  });
+
+  // Re-render route list to update selection
+  const mod = modules[currentModule];
+  document.getElementById('route-list').innerHTML = mod.routes.map(r => `
+    <div class="route-item ${r.key === key ? 'selected' : ''}"
+         onclick="selectRoute('${r.key}')">
+      <span class="method ${r.method.toLowerCase()}">${r.method}</span>
+      <span class="route-path">${r.path}</span>
+      ${r.auth ? '<span class="route-auth">🔒</span>' : ''}
+    </div>
+  `).join('');
+
+  const detail = mod.details[key];
+  if (!detail) {
+    document.getElementById('detail-panel').innerHTML = `
+      <div class="detail-card">
+        <div class="detail-header"><div class="detail-title">Select a route to see details</div></div>
+        <div class="detail-body" style="color:var(--muted);font-size:13px">
+          Click any route in the left panel to see its implementation flow and code.
+        </div>
+      </div>`;
+    return;
+  }
+
+  document.getElementById('detail-panel').innerHTML = `
+    <div class="detail-card">
+      <div class="detail-header">
+        <div class="detail-title">${detail.title}</div>
+      </div>
+      <div class="detail-body">
+        <div class="flow-steps">
+          ${detail.flow.map((s, i) => `
+            <div class="flow-step">
+              <div class="step-num">${i+1}</div>
+              <div class="step-content">
+                <div class="step-title">${s.title}</div>
+                <div class="step-desc">${s.desc}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+    ${detail.code ? `
+    <div class="detail-card">
+      <div class="detail-header"><div class="detail-title">Implementation</div></div>
+      <div class="detail-body" style="padding:16px">
+        <div class="code-block">${detail.code}</div>
+      </div>
+    </div>` : ''}
+  `;
+}
+
+function renderArchDetail() {
+  document.getElementById('detail-panel').innerHTML = `
+    <div class="detail-card">
+      <div class="detail-header"><div class="detail-title">Request Flow</div></div>
+      <div class="detail-body arch-diagram">
+        <div class="layer">
+          <div class="layer-label">Clients</div>
+          <div class="layer-nodes">
+            <div class="node node-api">📱 Flutter App</div>
+            <div class="node node-api">🌐 Admin Panel</div>
+            <div class="node node-api">🔗 3rd Party API</div>
+          </div>
+        </div>
+        <div class="layer">
+          <div class="layer-label">API Gateway / Load Balancer</div>
+          <div class="layer-nodes">
+            <div class="node node-ext">Rate Limiting (Redis sliding window)</div>
+            <div class="node node-ext">TLS Termination</div>
+            <div class="node node-ext">Request Logging (Pino)</div>
+          </div>
+        </div>
+        <div class="layer">
+          <div class="layer-label">API Services (Fastify + TypeScript)</div>
+          <div class="layer-nodes">
+            <div class="node node-api">Auth</div>
+            <div class="node node-api">Books</div>
+            <div class="node node-api">Reader</div>
+            <div class="node node-api">Community</div>
+            <div class="node node-api">Subscriptions</div>
+            <div class="node node-api">Offline</div>
+            <div class="node node-api">Analytics</div>
+            <div class="node node-api">Admin</div>
+          </div>
+        </div>
+        <div class="layer">
+          <div class="layer-label">Workers (Separate Process)</div>
+          <div class="layer-nodes">
+            <div class="node node-queue">🔐 Encryption Worker</div>
+            <div class="node node-queue">🌐 Translation Worker</div>
+            <div class="node node-queue">🗑️ Key Cleanup (cron)</div>
+          </div>
+        </div>
+        <div class="layer">
+          <div class="layer-label">Data Layer</div>
+          <div class="layer-nodes">
+            <div class="node node-db">PostgreSQL (Prisma)</div>
+            <div class="node node-queue">Redis (Bull + Cache)</div>
+            <div class="node node-store">S3/R2 (Encrypted Files)</div>
+            <div class="node node-ext">AWS KMS (Master Keys)</div>
+            <div class="node node-ext">Apple IAP API</div>
+            <div class="node node-ext">Google Play API</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-card">
+      <div class="detail-header"><div class="detail-title">Platform Stats</div></div>
+      <div class="detail-body">
+        <div class="metrics">
+          <div class="metric"><div class="metric-value">8</div><div class="metric-label">API Modules</div></div>
+          <div class="metric"><div class="metric-value">35+</div><div class="metric-label">Endpoints</div></div>
+          <div class="metric"><div class="metric-value">AES-256</div><div class="metric-label">Encryption</div></div>
+          <div class="metric"><div class="metric-value">RS256</div><div class="metric-label">JWT Algorithm</div></div>
+          <div class="metric"><div class="metric-value">2</div><div class="metric-label">Worker Types</div></div>
+          <div class="metric"><div class="metric-value">100ms</div><div class="metric-label">Target P95</div></div>
+        </div>
+        <div class="highlight-box">
+          <div class="highlight-title">🔐 Security Model</div>
+          <div class="highlight-text">
+            All book content is AES-256-GCM encrypted before storage. Master keys live in AWS KMS — never on disk.
+            JWTs use RS256 (asymmetric) — services verify with public key, no DB round-trip.
+            Refresh tokens stored as bcrypt hashes — single-use rotation detects compromise.
+            Offline keys are device-locked via RSA-OAEP with hardware-backed keys.
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Init
+showModule('auth', document.querySelector('.tab.active'));
+</script>
+</body>
+</html>

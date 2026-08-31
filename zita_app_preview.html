@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZITA — Mobile App Preview</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700;800&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --primary: #1A1A2E;
+    --accent: #E8B84B;
+    --accent-soft: #FDF3DC;
+    --surface: #FAF8F5;
+    --card: #FFFFFF;
+    --text-primary: #1A1A2E;
+    --text-secondary: #6B6B8A;
+    --success: #2ECC71;
+    --error: #E74C3C;
+    --reader-sepia: #FDF6E3;
+  }
+
+  body {
+    background: #0F0F1A;
+    font-family: 'DM Sans', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 40px 20px;
+    gap: 40px;
+  }
+
+  h1 {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #9B9BB0;
+    text-align: center;
+  }
+
+  .logo-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+
+  .logo-mark {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 800; color: var(--primary);
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .logo-text {
+    font-size: 22px; font-weight: 800; color: white;
+    letter-spacing: 4px; font-family: 'DM Sans', sans-serif;
+  }
+
+  /* Screen navigation */
+  .screen-nav {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .nav-btn {
+    padding: 8px 18px;
+    border-radius: 20px;
+    border: 1px solid #2D2D4E;
+    background: transparent;
+    color: #9B9BB0;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .nav-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--primary);
+    font-weight: 600;
+  }
+
+  /* Phone frame */
+  .phone-container {
+    position: relative;
+    width: 390px;
+    height: 844px;
+  }
+
+  .phone-frame {
+    position: absolute;
+    inset: 0;
+    border: 2px solid #2D2D4E;
+    border-radius: 54px;
+    background: var(--surface);
+    overflow: hidden;
+    box-shadow:
+      0 0 0 1px #1A1A2E,
+      0 40px 80px rgba(0,0,0,0.6),
+      inset 0 0 0 1px rgba(255,255,255,0.05);
+  }
+
+  .status-bar {
+    height: 44px;
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primary);
+  }
+
+  .screen {
+    display: none;
+    height: calc(100% - 44px);
+    overflow: hidden;
+    position: relative;
+    flex-direction: column;
+  }
+
+  .screen.active {
+    display: flex;
+  }
+
+  /* ─── LOGIN SCREEN ─────────────────────────────────────── */
+  #screen-login {
+    background: var(--surface);
+    padding: 0 24px;
+    overflow-y: auto;
+  }
+
+  .login-logo {
+    margin-top: 56px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 48px;
+  }
+
+  .login-logo-mark {
+    width: 36px; height: 36px;
+    background: var(--primary);
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 800; color: var(--accent);
+  }
+
+  .login-logo-text {
+    font-size: 20px; font-weight: 800;
+    color: var(--primary); letter-spacing: 3px;
+  }
+
+  .login-heading { font-size: 30px; font-weight: 700; color: var(--primary); line-height: 1.1; }
+  .login-sub { font-size: 15px; color: var(--text-secondary); margin-top: 8px; margin-bottom: 36px; }
+
+  .zita-input {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: none;
+    background: #F0EFF5;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    color: var(--primary);
+    margin-bottom: 14px;
+    outline: none;
+  }
+
+  .zita-input:focus { box-shadow: 0 0 0 1.5px var(--accent); }
+
+  .forgot { text-align: right; font-size: 13px; color: var(--accent); font-weight: 600; margin-bottom: 24px; cursor: pointer; }
+
+  .zita-btn {
+    width: 100%;
+    padding: 15px;
+    border-radius: 12px;
+    border: none;
+    background: var(--primary);
+    color: white;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.2s;
+    margin-bottom: 20px;
+  }
+
+  .zita-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .zita-btn:active { transform: translateY(0); }
+
+  .signup-link { text-align: center; font-size: 14px; color: var(--text-secondary); }
+  .signup-link span { color: var(--accent); font-weight: 600; cursor: pointer; }
+
+  /* ─── HOME SCREEN ──────────────────────────────────────── */
+  #screen-home { background: var(--surface); }
+
+  .app-bar {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    background: var(--surface);
+  }
+
+  .app-bar-logo { display: flex; align-items: center; gap: 8px; flex: 1; }
+  .app-bar-logo-mark {
+    width: 26px; height: 26px;
+    background: var(--primary); border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 800; color: var(--accent);
+  }
+  .app-bar-logo-text { font-size: 16px; font-weight: 800; letter-spacing: 2.5px; color: var(--primary); }
+
+  .app-bar-actions { display: flex; align-items: center; gap: 8px; }
+  .icon-btn { width: 36px; height: 36px; border-radius: 50%; border: none; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 600; cursor: pointer; }
+
+  .home-scroll { flex: 1; overflow-y: auto; padding-bottom: 70px; }
+  .home-scroll::-webkit-scrollbar { display: none; }
+
+  /* Category picker */
+  .category-bar { padding: 4px 20px 14px; position: relative; }
+  .category-dropdown-btn {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%; padding: 12px 16px; border-radius: 12px;
+    background: white; border: 1px solid #ECE9F5;
+    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+    color: var(--primary); cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+  }
+  .category-dropdown-btn .chev { color: var(--text-secondary); font-size: 12px; transition: transform 0.2s; }
+  .category-dropdown-btn.open .chev { transform: rotate(180deg); }
+
+  .category-chips { display: flex; gap: 8px; overflow-x: auto; margin-top: 10px; padding-bottom: 2px; }
+  .category-chips::-webkit-scrollbar { display: none; }
+  .category-chip {
+    white-space: nowrap; padding: 7px 14px; border-radius: 20px;
+    background: var(--accent-soft); color: var(--primary);
+    font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid transparent;
+  }
+  .category-chip.active { background: var(--primary); color: var(--accent); }
+
+  .category-panel {
+    display: none; position: absolute; left: 20px; right: 20px; top: 54px;
+    z-index: 20; background: white; border-radius: 14px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.18); max-height: 360px; overflow-y: auto;
+    border: 1px solid #ECE9F5;
+  }
+  .category-panel.open { display: block; }
+  .category-group { border-bottom: 1px solid #F2F0F8; }
+  .category-group:last-child { border-bottom: none; }
+  .category-group-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; cursor: pointer; font-size: 13px; font-weight: 700; color: var(--primary);
+  }
+  .category-group-header .chev { font-size: 11px; color: var(--text-secondary); transition: transform 0.2s; }
+  .category-group.expanded .category-group-header .chev { transform: rotate(180deg); }
+  .category-subs { display: none; padding: 0 16px 10px 34px; flex-direction: column; gap: 6px; }
+  .category-group.expanded .category-subs { display: flex; }
+  .category-sub-item { font-size: 12.5px; color: var(--text-secondary); cursor: pointer; padding: 4px 0; }
+  .category-sub-item:hover, .category-sub-item.selected { color: var(--accent); font-weight: 600; }
+
+  /* Continue reading */
+  .section-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px 10px; }
+  .section-title { font-size: 16px; font-weight: 700; color: var(--primary); }
+  .section-link { font-size: 13px; color: var(--accent); font-weight: 600; }
+
+  .continue-scroll { display: flex; gap: 12px; padding: 0 20px; overflow-x: auto; }
+  .continue-scroll::-webkit-scrollbar { display: none; }
+
+  .continue-tile {
+    min-width: 240px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: white;
+    border-radius: 14px;
+    padding: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+
+  .continue-cover { width: 44px; height: 60px; border-radius: 6px; object-fit: cover; background: linear-gradient(135deg, #667eea, #764ba2); }
+  .continue-info { flex: 1; }
+  .continue-title { font-size: 13px; font-weight: 600; color: var(--primary); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
+  .continue-sub { font-size: 11px; color: var(--text-secondary); margin-bottom: 6px; }
+  .progress-bar { height: 3px; background: #EEE; border-radius: 2px; }
+  .progress-fill { height: 100%; border-radius: 2px; background: var(--accent); }
+
+  /* Featured carousel */
+  .featured-card {
+    margin: 16px 20px;
+    height: 200px;
+    border-radius: 20px;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+  }
+
+  .featured-bg {
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, #1A1A2E 0%, #2D2D5E 100%);
+  }
+
+  .featured-pattern {
+    position: absolute; inset: 0;
+    background-image: radial-gradient(circle at 20% 50%, rgba(232,184,75,0.15) 0%, transparent 50%),
+                      radial-gradient(circle at 80% 20%, rgba(232,184,75,0.1) 0%, transparent 40%);
+  }
+
+  .featured-content {
+    position: relative; z-index: 1;
+    padding: 20px;
+    height: 100%;
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+  }
+
+  .featured-cover {
+    width: 90px; height: 120px;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    background: linear-gradient(135deg, #E8B84B, #F5A623);
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px;
+  }
+
+  .featured-meta { flex: 1; }
+  .featured-badge { font-size: 10px; font-weight: 600; color: var(--accent); letter-spacing: 1px; margin-bottom: 6px; }
+  .featured-title { font-size: 18px; font-weight: 700; color: white; line-height: 1.2; margin-bottom: 4px; font-family: 'Lora', serif; }
+  .featured-author { font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 12px; }
+  .featured-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--accent); color: var(--primary);
+    font-size: 12px; font-weight: 700;
+    padding: 7px 14px; border-radius: 20px;
+  }
+
+  /* Book grid */
+  .books-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 0 20px; }
+
+  .book-card { background: white; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.05); cursor: pointer; transition: transform 0.2s; }
+  .book-card:hover { transform: translateY(-2px); }
+
+  .book-cover {
+    width: 100%; aspect-ratio: 2/3;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 40px;
+  }
+
+  .book-info { padding: 10px; }
+  .book-title { font-size: 13px; font-weight: 600; color: var(--primary); margin-bottom: 2px; line-height: 1.3; }
+  .book-author { font-size: 11px; color: var(--text-secondary); margin-bottom: 6px; }
+  .book-meta { display: flex; justify-content: space-between; align-items: center; }
+  .book-badge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px; }
+  .badge-premium { background: #FDF3DC; color: #E8B84B; }
+  .badge-free { background: #E8F5E9; color: #2ECC71; }
+  .book-time { font-size: 10px; color: var(--text-secondary); }
+
+  /* Bottom nav */
+  .bottom-nav {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 70px;
+    background: white;
+    border-top: 1px solid #F0EFF5;
+    display: flex;
+    align-items: center;
+  }
+
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; padding: 8px 0; }
+  .nav-icon { font-size: 22px; }
+  .nav-label { font-size: 10px; color: var(--text-secondary); }
+  .nav-item.active .nav-label { color: var(--primary); font-weight: 600; }
+  .nav-item.active .nav-icon { filter: none; }
+
+  /* ─── READER SCREEN ────────────────────────────────────── */
+  #screen-reader { background: var(--reader-sepia); position: relative; }
+
+  .reader-toolbar {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 10;
+    background: var(--reader-sepia);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+  }
+
+  .reader-back { width: 34px; height: 34px; border-radius: 50%; border: none; background: rgba(0,0,0,0.06); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; }
+  .reader-title-col { flex: 1; }
+  .reader-book-title { font-size: 13px; font-weight: 600; color: #4A3728; }
+  .reader-chapter { font-size: 11px; color: #8B7355; }
+  .reader-toolbar-action { width: 34px; height: 34px; border-radius: 50%; border: none; background: rgba(0,0,0,0.06); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 15px; }
+
+  .reader-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 70px 24px 120px;
+    font-family: 'Lora', serif;
+    color: #4A3728;
+    line-height: 1.8;
+    font-size: 18px;
+  }
+
+  .reader-content::-webkit-scrollbar { display: none; }
+
+  .reader-chapter-title {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    line-height: 1.3;
+    color: #2A1A0E;
+  }
+
+  .reader-p { margin-bottom: 20px; text-align: justify; }
+
+  .reader-progress-bar {
+    position: absolute; bottom: 80px; left: 24px; right: 24px; height: 2px;
+    background: rgba(0,0,0,0.1); border-radius: 1px;
+  }
+
+  .reader-progress-fill { height: 100%; width: 42%; background: #C8A96E; border-radius: 1px; }
+
+  .tts-bar {
+    position: absolute; bottom: 8px; left: 16px; right: 16px;
+    height: 56px;
+    background: var(--primary);
+    border-radius: 28px;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  }
+
+  .tts-label { font-size: 13px; color: rgba(255,255,255,0.7); flex: 1; }
+  .tts-btn { width: 36px; height: 36px; border-radius: 50%; border: none; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; }
+  .tts-play { background: var(--accent) !important; width: 38px; height: 38px; }
+
+  .translation-pill {
+    position: absolute;
+    bottom: 80px;
+    left: 24px;
+    right: 24px;
+    background: var(--primary);
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  }
+
+  .trans-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .trans-icon { font-size: 14px; }
+  .trans-label { font-size: 13px; color: var(--accent); font-weight: 600; flex: 1; }
+  .trans-lang { font-size: 12px; color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 6px; }
+  .trans-text { font-size: 14px; color: rgba(255,255,255,0.9); line-height: 1.6; font-family: 'Lora', serif; font-style: italic; }
+
+  /* ─── PAYWALL SCREEN ───────────────────────────────────── */
+  #screen-paywall { background: var(--surface); overflow-y: auto; padding: 24px; }
+  #screen-paywall::-webkit-scrollbar { display: none; }
+
+  .paywall-crown {
+    width: 68px; height: 68px;
+    background: linear-gradient(135deg, var(--accent), #F5A623);
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px;
+    margin: 16px auto 20px;
+    box-shadow: 0 12px 32px rgba(232,184,75,0.35);
+  }
+
+  .paywall-title { font-size: 26px; font-weight: 800; text-align: center; color: var(--primary); }
+  .paywall-sub { font-size: 15px; color: var(--text-secondary); text-align: center; margin-top: 8px; line-height: 1.5; margin-bottom: 28px; }
+
+  .feature-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; }
+  .feature-icon { width: 38px; height: 38px; background: var(--accent-soft); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .feature-text { flex: 1; }
+  .feature-title { font-size: 14px; font-weight: 600; color: var(--primary); }
+  .feature-sub { font-size: 12px; color: var(--text-secondary); }
+  .feature-check { font-size: 18px; }
+
+  .plan-card {
+    border: 1.5px solid #E0DDD8;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .plan-card.selected {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .plan-radio { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #CCC; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .plan-card.selected .plan-radio { border-color: var(--accent); background: var(--accent); }
+  .plan-radio-dot { width: 8px; height: 8px; border-radius: 50%; background: white; }
+
+  .plan-name { font-size: 14px; font-weight: 600; color: var(--primary); flex: 1; }
+  .plan-badge { font-size: 10px; font-weight: 600; background: var(--accent); color: white; padding: 2px 8px; border-radius: 5px; }
+  .plan-price { font-size: 16px; font-weight: 800; color: var(--primary); }
+  .plan-period { font-size: 11px; color: var(--text-secondary); }
+
+  .paywall-btn { margin-top: 20px; }
+  .restore-btn { width: 100%; padding: 12px; border: none; background: transparent; font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--text-secondary); cursor: pointer; }
+  .paywall-legal { font-size: 10px; color: var(--text-secondary); text-align: center; line-height: 1.5; margin-top: 4px; }
+
+  /* ─── DASHBOARD SCREEN ─────────────────────────────────── */
+  #screen-dashboard { background: var(--surface); }
+
+  .dashboard-scroll { flex: 1; overflow-y: auto; padding-bottom: 20px; }
+  .dashboard-scroll::-webkit-scrollbar { display: none; }
+
+  .streak-card {
+    margin: 16px 20px;
+    padding: 20px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, var(--primary) 0%, #2D2D4E 100%);
+  }
+
+  .streak-row { display: flex; align-items: flex-start; }
+  .streak-col { flex: 1; }
+  .streak-label { font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 4px; }
+  .streak-number { font-size: 36px; font-weight: 800; color: white; line-height: 1; }
+  .streak-unit { font-size: 14px; color: rgba(255,255,255,0.7); margin-top: 2px; }
+
+  .stat-chips { display: flex; flex-direction: column; gap: 8px; }
+  .stat-chip { background: rgba(255,255,255,0.08); border-radius: 8px; padding: 8px 12px; text-align: center; }
+  .stat-chip-value { font-size: 16px; font-weight: 700; color: var(--accent); }
+  .stat-chip-label { font-size: 10px; color: rgba(255,255,255,0.5); }
+
+  .week-dots { display: flex; gap: 6px; margin-top: 14px; }
+  .day-dot { flex: 1; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.15); }
+  .day-dot.done { background: var(--accent); }
+
+  .progress-book {
+    margin: 0 20px 12px;
+    padding: 14px;
+    background: white;
+    border-radius: 14px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+
+  .progress-cover { width: 48px; height: 64px; border-radius: 7px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+  .progress-info { flex: 1; }
+  .progress-title { font-size: 13px; font-weight: 600; color: var(--primary); margin-bottom: 2px; }
+  .progress-pct { font-size: 11px; color: var(--text-secondary); margin-bottom: 6px; }
+  .progress-bar2 { height: 4px; background: #EEE; border-radius: 2px; }
+  .progress-fill2 { height: 100%; border-radius: 2px; background: var(--accent); }
+  .continue-read-btn { font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-soft); padding: 5px 10px; border-radius: 8px; border: none; cursor: pointer; }
+
+  .highlight-card {
+    margin: 0 20px 10px;
+    padding: 14px;
+    background: var(--accent-soft);
+    border-radius: 12px;
+    border-left: 3px solid var(--accent);
+  }
+
+  .highlight-text { font-size: 13px; font-style: italic; color: var(--primary); line-height: 1.5; margin-bottom: 6px; font-family: 'Lora', serif; }
+  .highlight-source { font-size: 11px; color: var(--text-secondary); }
+
+  /* ─── COMMUNITY SCREEN ─────────────────────────────────── */
+  #screen-community { background: var(--surface); }
+
+  .community-scroll { flex: 1; overflow-y: auto; padding-bottom: 80px; }
+  .community-scroll::-webkit-scrollbar { display: none; }
+
+  .comment-tile {
+    padding: 14px 20px;
+    border-bottom: 1px solid #F0EFF5;
+  }
+
+  .comment-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .comment-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+  .comment-user { font-size: 13px; font-weight: 600; color: var(--primary); }
+  .comment-time { font-size: 11px; color: var(--text-secondary); }
+  .comment-body { font-size: 14px; color: var(--primary); line-height: 1.5; margin-bottom: 10px; }
+  .comment-actions { display: flex; gap: 16px; align-items: center; }
+  .comment-action { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-secondary); cursor: pointer; background: none; border: none; }
+  .comment-action:hover { color: var(--accent); }
+
+  .reply-tile {
+    margin-left: 42px;
+    padding: 10px 0 10px 14px;
+    border-left: 2px solid #F0EFF5;
+  }
+
+  .comment-input-bar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: white;
+    border-top: 1px solid #F0EFF5;
+    padding: 10px 16px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+  }
+
+  .comment-input {
+    flex: 1;
+    padding: 10px 14px;
+    border-radius: 20px;
+    border: none;
+    background: #F0EFF5;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    resize: none;
+    outline: none;
+    color: var(--primary);
+  }
+
+  .send-btn { width: 38px; height: 38px; border-radius: 50%; background: var(--accent); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; flex-shrink: 0; }
+
+  /* Animation */
+  .screen { animation: none; }
+  .screen.active { animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Label */
+  .screen-label {
+    font-size: 11px;
+    color: #4A4A6A;
+    text-align: center;
+    margin-top: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<div class="logo-row">
+  <div class="logo-mark">Z</div>
+  <div class="logo-text">ZITA</div>
+</div>
+<h1>Phase 2 — Mobile App Preview</h1>
+
+<div class="screen-nav">
+  <button class="nav-btn active" onclick="showScreen('login', this)">Login</button>
+  <button class="nav-btn" onclick="showScreen('home', this)">Home</button>
+  <button class="nav-btn" onclick="showScreen('reader', this)">Reader</button>
+  <button class="nav-btn" onclick="showScreen('paywall', this)">Paywall</button>
+  <button class="nav-btn" onclick="showScreen('community', this)">Community</button>
+  <button class="nav-btn" onclick="showScreen('dashboard', this)">Dashboard</button>
+</div>
+
+<div class="phone-container">
+  <div class="phone-frame">
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <span>9:41</span>
+      <span>●●● WiFi 🔋</span>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="screen active" id="screen-login">
+      <div class="login-logo">
+        <div class="login-logo-mark">Z</div>
+        <div class="login-logo-text">ZITA</div>
+      </div>
+      <div class="login-heading">Welcome back</div>
+      <div class="login-sub">Sign in to continue reading</div>
+      <input class="zita-input" type="email" placeholder="Email address" value="reader@example.com">
+      <input class="zita-input" type="password" placeholder="Password" value="••••••••">
+      <div class="forgot">Forgot password?</div>
+      <button class="zita-btn" onclick="showScreen('home', document.querySelectorAll('.nav-btn')[1])">Sign In</button>
+      <div class="signup-link">Don't have an account? <span onclick="showScreen('paywall', document.querySelectorAll('.nav-btn')[3])">Start free trial</span></div>
+    </div>
+
+    <!-- HOME -->
+    <div class="screen" id="screen-home">
+      <div class="app-bar">
+        <div class="app-bar-logo">
+          <div class="app-bar-logo-mark">Z</div>
+          <div class="app-bar-logo-text">ZITA</div>
+        </div>
+        <div class="app-bar-actions">
+          <button class="icon-btn">🔍</button>
+          <div class="avatar" onclick="showScreen('dashboard', document.querySelectorAll('.nav-btn')[5])">A</div>
+        </div>
+      </div>
+
+      <div class="category-bar">
+        <button class="category-dropdown-btn" id="categoryDropdownBtn" onclick="toggleCategoryPanel()">
+          <span id="categorySelectedLabel">📚 Browse by Category</span>
+          <span class="chev">▾</span>
+        </button>
+        <div class="category-chips">
+          <div class="category-chip active" onclick="selectCategory('All', this)">All</div>
+          <div class="category-chip" onclick="selectCategory('Financial Intelligence', this)">💰 Finance</div>
+          <div class="category-chip" onclick="selectCategory('Personal Development', this)">🌱 Personal Dev</div>
+          <div class="category-chip" onclick="selectCategory('Business &amp; Entrepreneurship', this)">💼 Business</div>
+          <div class="category-chip" onclick="selectCategory('Christian Faith &amp; Spiritual Growth', this)">✝️ Faith</div>
+          <div class="category-chip" onclick="selectCategory('Health &amp; Wellness', this)">🧘 Health</div>
+        </div>
+        <div class="category-panel" id="categoryPanel"><!-- populated by JS --></div>
+      </div>
+
+      <div class="home-scroll">
+        <!-- Continue reading -->
+        <div class="section-header">
+          <span class="section-title">Continue Reading</span>
+          <span class="section-link">See all</span>
+        </div>
+        <div class="continue-scroll">
+          <div class="continue-tile">
+            <div class="continue-cover" style="background:linear-gradient(135deg,#667eea,#764ba2)"></div>
+            <div class="continue-info">
+              <div class="continue-title">The Midnight Library</div>
+              <div class="continue-sub">Chapter 7 · 64% done</div>
+              <div class="progress-bar"><div class="progress-fill" style="width:64%"></div></div>
+            </div>
+          </div>
+          <div class="continue-tile">
+            <div class="continue-cover" style="background:linear-gradient(135deg,#f093fb,#f5576c)"></div>
+            <div class="continue-info">
+              <div class="continue-title">Atomic Habits</div>
+              <div class="continue-sub">Chapter 3 · 28% done</div>
+              <div class="progress-bar"><div class="progress-fill" style="width:28%"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Featured -->
+        <div class="featured-card" onclick="showScreen('reader', document.querySelectorAll('.nav-btn')[2])">
+          <div class="featured-bg"></div>
+          <div class="featured-pattern"></div>
+          <div class="featured-content">
+            <div class="featured-cover">📚</div>
+            <div class="featured-meta">
+              <div class="featured-badge">✦ FEATURED</div>
+              <div class="featured-title">Things Fall Apart</div>
+              <div class="featured-author">Chinua Achebe</div>
+              <div class="featured-btn">▶ Read Now</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Trending -->
+        <div class="section-header">
+          <span class="section-title">Trending</span>
+          <span class="section-link">See all</span>
+        </div>
+
+        <div class="books-grid">
+          <div class="book-card" onclick="showScreen('reader', document.querySelectorAll('.nav-btn')[2])">
+            <div class="book-cover" style="background:linear-gradient(135deg,#4facfe,#00f2fe)">🌊</div>
+            <div class="book-info">
+              <div class="book-title">Deep Work</div>
+              <div class="book-author">Cal Newport</div>
+              <div class="book-meta">
+                <span class="book-badge badge-premium">Premium</span>
+                <span class="book-time">4h 20m</span>
+              </div>
+            </div>
+          </div>
+          <div class="book-card">
+            <div class="book-cover" style="background:linear-gradient(135deg,#43e97b,#38f9d7)">🌿</div>
+            <div class="book-info">
+              <div class="book-title">The Alchemist</div>
+              <div class="book-author">Paulo Coelho</div>
+              <div class="book-meta">
+                <span class="book-badge badge-free">Free</span>
+                <span class="book-time">3h 10m</span>
+              </div>
+            </div>
+          </div>
+          <div class="book-card">
+            <div class="book-cover" style="background:linear-gradient(135deg,#fa709a,#fee140)">🔥</div>
+            <div class="book-info">
+              <div class="book-title">Ikigai</div>
+              <div class="book-author">Héctor García</div>
+              <div class="book-meta">
+                <span class="book-badge badge-premium">Premium</span>
+                <span class="book-time">2h 45m</span>
+              </div>
+            </div>
+          </div>
+          <div class="book-card">
+            <div class="book-cover" style="background:linear-gradient(135deg,#a18cd1,#fbc2eb)">✨</div>
+            <div class="book-info">
+              <div class="book-title">Shoe Dog</div>
+              <div class="book-author">Phil Knight</div>
+              <div class="book-meta">
+                <span class="book-badge badge-premium">Premium</span>
+                <span class="book-time">6h 50m</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-nav">
+        <div class="nav-item active"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></div>
+        <div class="nav-item"><div class="nav-icon">🔭</div><div class="nav-label">Explore</div></div>
+        <div class="nav-item"><div class="nav-icon">📑</div><div class="nav-label">Library</div></div>
+        <div class="nav-item" onclick="showScreen('dashboard', document.querySelectorAll('.nav-btn')[5])"><div class="nav-icon">👤</div><div class="nav-label">Profile</div></div>
+      </div>
+    </div>
+
+    <!-- READER -->
+    <div class="screen" id="screen-reader">
+      <div class="reader-toolbar">
+        <button class="reader-back" onclick="showScreen('home', document.querySelectorAll('.nav-btn')[1])">←</button>
+        <div class="reader-title-col">
+          <div class="reader-book-title">Things Fall Apart</div>
+          <div class="reader-chapter">Chapter 7 of 25</div>
+        </div>
+        <button class="reader-toolbar-action" title="Translate" onclick="toggleTranslation()">🌐</button>
+        <button class="reader-toolbar-action" title="Settings">Aa</button>
+        <button class="reader-toolbar-action" onclick="showScreen('community', document.querySelectorAll('.nav-btn')[4])">💬</button>
+      </div>
+
+      <div class="reader-content" id="reader-content">
+        <div class="reader-chapter-title">Chapter Seven</div>
+        <p class="reader-p">Okonkwo ruled his household with a heavy hand. His wives, especially the youngest, lived in perpetual fear of his fiery temper, and so did his little children.</p>
+        <p class="reader-p">Perhaps down in his heart Okonkwo was not a cruel man. But his whole life was dominated by fear, the fear of failure and of weakness. It was deeper and more intimate than the fear of evil and capricious gods and of magic, the fear of the forest, and of the forces of nature, malevolent, red in tooth and claw.</p>
+        <p class="reader-p">Okonkwo's fear was greater than these. It was not external but lay deep within himself. It was the fear of himself, lest he should be found to resemble his father. Even as a little boy he had resented his father's failure and weakness, and even now he still remembered how he had suffered when a playmate had told him that his father was agbala.</p>
+        <p class="reader-p">That was how Okonkwo first came to know that agbala was not only another name for a woman, it could also mean a man who had taken no title. And so Okonkwo was ruled by one passion—to hate everything that his father Unoka had loved.</p>
+      </div>
+
+      <div class="reader-progress-bar">
+        <div class="reader-progress-fill"></div>
+      </div>
+
+      <div id="translation-overlay" style="display:none;" class="translation-pill">
+        <div class="trans-header">
+          <span class="trans-icon">🌐</span>
+          <span class="trans-label">Translation — Spanish</span>
+          <span class="trans-lang">ES ▾</span>
+        </div>
+        <div class="trans-text">Okonkwo gobernaba su hogar con mano firme. Sus esposas, especialmente la más joven, vivían en constante temor de su temperamento ardiente...</div>
+      </div>
+
+      <div class="tts-bar">
+        <span style="font-size:16px">🎧</span>
+        <span class="tts-label">Listen</span>
+        <button class="tts-btn">⏮</button>
+        <button class="tts-btn tts-play" id="tts-play-btn" onclick="toggleTts()">▶</button>
+        <button class="tts-btn">⏭</button>
+        <button class="tts-btn">■</button>
+      </div>
+    </div>
+
+    <!-- PAYWALL -->
+    <div class="screen" id="screen-paywall">
+      <div style="display:flex;justify-content:flex-end;padding:8px 16px;">
+        <button onclick="showScreen('home', document.querySelectorAll('.nav-btn')[1])" style="background:none;border:none;font-size:20px;color:#888;cursor:pointer;">✕</button>
+      </div>
+      <div class="paywall-crown">📚</div>
+      <div class="paywall-title">ZITA Premium</div>
+      <div class="paywall-sub">Start your 7-day free trial.<br>Cancel anytime.</div>
+
+      <div class="feature-row">
+        <div class="feature-icon">📚</div>
+        <div class="feature-text">
+          <div class="feature-title">Unlimited Books</div>
+          <div class="feature-sub">Access the full ZITA library</div>
+        </div>
+        <div class="feature-check">✅</div>
+      </div>
+      <div class="feature-row">
+        <div class="feature-icon">📥</div>
+        <div class="feature-text">
+          <div class="feature-title">Offline Reading</div>
+          <div class="feature-sub">Read without internet connection</div>
+        </div>
+        <div class="feature-check">✅</div>
+      </div>
+      <div class="feature-row">
+        <div class="feature-icon">🎧</div>
+        <div class="feature-text">
+          <div class="feature-title">Voice Assistant</div>
+          <div class="feature-sub">Listen to any book</div>
+        </div>
+        <div class="feature-check">✅</div>
+      </div>
+      <div class="feature-row">
+        <div class="feature-icon">🌐</div>
+        <div class="feature-text">
+          <div class="feature-title">50+ Languages</div>
+          <div class="feature-sub">Read and translate instantly</div>
+        </div>
+        <div class="feature-check">✅</div>
+      </div>
+      <div class="feature-row">
+        <div class="feature-icon">💬</div>
+        <div class="feature-text">
+          <div class="feature-title">Community Access</div>
+          <div class="feature-sub">Discuss with readers worldwide</div>
+        </div>
+        <div class="feature-check">✅</div>
+      </div>
+
+      <div style="margin-top:20px">
+        <div class="plan-card selected" onclick="selectPlan(this)">
+          <div class="plan-radio"><div class="plan-radio-dot"></div></div>
+          <div class="plan-name">Monthly</div>
+          <div class="plan-badge">7 days FREE</div>
+          <div><div class="plan-price">$9.99</div><div class="plan-period">/month</div></div>
+        </div>
+        <div class="plan-card" onclick="selectPlan(this)">
+          <div class="plan-radio"></div>
+          <div class="plan-name">Annual</div>
+          <div class="plan-badge">Save 33%</div>
+          <div><div class="plan-price">$79.99</div><div class="plan-period">/year</div></div>
+        </div>
+      </div>
+
+      <button class="zita-btn paywall-btn" onclick="showScreen('home', document.querySelectorAll('.nav-btn')[1])">Start Free Trial</button>
+      <button class="restore-btn">Restore purchases</button>
+      <div class="paywall-legal">Subscription auto-renews. Cancel anytime in App Store or Google Play settings.</div>
+    </div>
+
+    <!-- COMMUNITY -->
+    <div class="screen" id="screen-community">
+      <div class="app-bar">
+        <button style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--primary)" onclick="showScreen('reader', document.querySelectorAll('.nav-btn')[2])">←</button>
+        <div style="flex:1;text-align:center;font-weight:700;font-size:15px">Discussion</div>
+        <button style="background:none;border:none;font-size:16px;cursor:pointer">⇅</button>
+      </div>
+
+      <div class="community-scroll">
+        <!-- Comment 1 -->
+        <div class="comment-tile">
+          <div class="comment-header">
+            <div class="comment-avatar" style="background:#E8F5E9;color:#2ECC71">A</div>
+            <div>
+              <div class="comment-user">Amara O.</div>
+              <div class="comment-time">2 hours ago</div>
+            </div>
+          </div>
+          <div class="comment-body">The way Achebe portrays Okonkwo's fear is so deeply human. He's not just a rigid man — he's someone running from his father's shadow his entire life. This chapter hit different for me.</div>
+          <div class="comment-actions">
+            <button class="comment-action">❤️ 24</button>
+            <button class="comment-action">💬 Reply</button>
+            <button class="comment-action">⚑ Report</button>
+          </div>
+        </div>
+
+        <!-- Reply -->
+        <div class="comment-tile reply-tile">
+          <div class="comment-header">
+            <div class="comment-avatar" style="background:#EDE7F6;color:#7E57C2">K</div>
+            <div>
+              <div class="comment-user">Kofi A.</div>
+              <div class="comment-time">1 hour ago</div>
+            </div>
+          </div>
+          <div class="comment-body">Exactly! And it's ironic — in trying so hard not to be his father, he becomes equally extreme in the other direction.</div>
+          <div class="comment-actions">
+            <button class="comment-action">❤️ 11</button>
+            <button class="comment-action">💬 Reply</button>
+          </div>
+        </div>
+
+        <!-- Comment 2 -->
+        <div class="comment-tile">
+          <div class="comment-header">
+            <div class="comment-avatar" style="background:#FFF3E0;color:#F57C00">F</div>
+            <div>
+              <div class="comment-user">Fatima S.</div>
+              <div class="comment-time">3 hours ago</div>
+            </div>
+          </div>
+          <div class="comment-body">The word "agbala" carries so much weight here. In one sentence Achebe shows us the entire social structure that defines Okonkwo's world.</div>
+          <div class="comment-actions">
+            <button class="comment-action">❤️ 37</button>
+            <button class="comment-action">💬 Reply</button>
+            <button class="comment-action">⚑ Report</button>
+          </div>
+        </div>
+
+        <!-- Comment 3 -->
+        <div class="comment-tile">
+          <div class="comment-header">
+            <div class="comment-avatar" style="background:#E3F2FD;color:#1976D2">T</div>
+            <div>
+              <div class="comment-user">Themba N.</div>
+              <div class="comment-time">5 hours ago</div>
+            </div>
+          </div>
+          <div class="comment-body">First time reading this. I can already feel this story is going to stay with me for years. The prose is incredibly efficient — every sentence earns its place.</div>
+          <div class="comment-actions">
+            <button class="comment-action">❤️ 18</button>
+            <button class="comment-action">💬 Reply</button>
+            <button class="comment-action">⚑ Report</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="comment-input-bar">
+        <textarea class="comment-input" rows="1" placeholder="Share your thoughts..."></textarea>
+        <button class="send-btn">➤</button>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="screen" id="screen-dashboard">
+      <div class="app-bar" style="border-bottom:1px solid #F0EFF5">
+        <div style="font-size:18px;font-weight:700">My Reading</div>
+      </div>
+
+      <div class="dashboard-scroll">
+        <!-- Streak card -->
+        <div class="streak-card">
+          <div class="streak-row">
+            <div class="streak-col">
+              <div class="streak-label">🔥 Reading Streak</div>
+              <div class="streak-number">14</div>
+              <div class="streak-unit">days</div>
+            </div>
+            <div class="stat-chips">
+              <div class="stat-chip">
+                <div class="stat-chip-value">8</div>
+                <div class="stat-chip-label">Books read</div>
+              </div>
+              <div class="stat-chip">
+                <div class="stat-chip-value">42.5h</div>
+                <div class="stat-chip-label">Hours read</div>
+              </div>
+            </div>
+          </div>
+          <div class="week-dots">
+            <div class="day-dot done"></div>
+            <div class="day-dot done"></div>
+            <div class="day-dot done"></div>
+            <div class="day-dot done"></div>
+            <div class="day-dot done"></div>
+            <div class="day-dot done"></div>
+            <div class="day-dot"></div>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <span class="section-title">Currently Reading</span>
+        </div>
+
+        <div class="progress-book">
+          <div class="progress-cover" style="background:linear-gradient(135deg,#667eea,#764ba2)">📘</div>
+          <div class="progress-info">
+            <div class="progress-title">The Midnight Library</div>
+            <div class="progress-pct">64% complete · Chapter 7</div>
+            <div class="progress-bar2"><div class="progress-fill2" style="width:64%"></div></div>
+          </div>
+          <button class="continue-read-btn" onclick="showScreen('reader', document.querySelectorAll('.nav-btn')[2])">Read</button>
+        </div>
+
+        <div class="progress-book">
+          <div class="progress-cover" style="background:linear-gradient(135deg,#f093fb,#f5576c)">📕</div>
+          <div class="progress-info">
+            <div class="progress-title">Atomic Habits</div>
+            <div class="progress-pct">28% complete · Chapter 3</div>
+            <div class="progress-bar2"><div class="progress-fill2" style="width:28%"></div></div>
+          </div>
+          <button class="continue-read-btn">Read</button>
+        </div>
+
+        <div class="section-header" style="margin-top:8px">
+          <span class="section-title">My Highlights</span>
+        </div>
+
+        <div class="highlight-card">
+          <div class="highlight-text">"He was not afraid of work, but of idleness, which he saw as a kind of slow death."</div>
+          <div class="highlight-source">Things Fall Apart · Chapter 4</div>
+        </div>
+
+        <div class="highlight-card">
+          <div class="highlight-text">"You do not rise to the level of your goals. You fall to the level of your systems."</div>
+          <div class="highlight-source">Atomic Habits · Chapter 1</div>
+        </div>
+
+        <div class="highlight-card">
+          <div class="highlight-text">"Between stimulus and response there is a space. In that space is our power to choose our response."</div>
+          <div class="highlight-source">Man's Search for Meaning · Chapter 2</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- phone-frame -->
+</div><!-- phone-container -->
+
+<div class="screen-label" id="screen-label">Authentication</div>
+
+<script>
+  const labels = {
+    login: 'Authentication — Email + Device Binding',
+    home: 'Home — Featured · Trending · Continue Reading',
+    reader: 'Reader — Encrypted · TTS · Translation · Screenshot Blocked',
+    paywall: 'Subscription — 7-Day Trial · Monthly · Annual',
+    community: 'Community — Comments · Replies · Likes · Reports',
+    dashboard: 'Dashboard — Streak · Progress · Highlights',
+  };
+
+  function showScreen(name, btn) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    const screen = document.getElementById('screen-' + name);
+    if (screen) screen.classList.add('active');
+    if (btn) btn.classList.add('active');
+    document.getElementById('screen-label').textContent = labels[name] || name;
+    document.getElementById('translation-overlay').style.display = 'none';
+  }
+
+  // ─── Category picker (12 top-level categories × 5 subcategories) ───
+  const CATEGORY_TREE = [
+    { name: 'Personal Development', icon: '🌱', subs: ['Habits', 'Mindset', 'Productivity', 'Motivation', 'Self-discipline'] },
+    { name: 'Financial Intelligence', icon: '💰', subs: ['Money management', 'Investing', 'Wealth building', 'Financial freedom', 'Business finance'] },
+    { name: 'Business & Entrepreneurship', icon: '💼', subs: ['Startups', 'Leadership', 'Management', 'Strategy', 'Innovation'] },
+    { name: 'Emotional & Mental Growth', icon: '🧠', subs: ['Emotional intelligence', 'Healing', 'Trauma recovery', 'Self-awareness', 'Confidence'] },
+    { name: 'Christian Faith & Spiritual Growth', icon: '✝️', subs: ['Purpose', 'Prayer', 'Spiritual warfare', 'Christian living', 'Devotionals'] },
+    { name: 'Character Building', icon: '🛡️', subs: ['Discipline', 'Integrity', 'Courage', 'Resilience', 'Stoicism'] },
+    { name: 'Relationships & Communication', icon: '💬', subs: ['Marriage', 'Dating', 'Family', 'Communication skills', 'Conflict resolution'] },
+    { name: 'Health & Wellness', icon: '🧘', subs: ['Fitness', 'Nutrition', 'Mental health', 'Healthy living', 'Stress management'] },
+    { name: 'Career & Professional Growth', icon: '📈', subs: ['Career development', 'Workplace skills', 'Productivity at work', 'Leadership at work', 'Personal branding'] },
+    { name: 'Creativity & Purpose', icon: '🎨', subs: ['Creativity', 'Purpose discovery', 'Life calling', 'Inspiration', 'Art & expression'] },
+    { name: 'Technology & Future Skills', icon: '💻', subs: ['AI', 'Coding', 'Digital skills', 'Tech trends', 'Innovation'] },
+    { name: 'Youth & Teen Development', icon: '🎓', subs: ['Teen mindset', 'Early financial education', 'Character for youth', 'Study habits', 'Life skills'] },
+  ];
+
+  function renderCategoryPanel() {
+    const panel = document.getElementById('categoryPanel');
+    if (!panel) return;
+    panel.innerHTML = CATEGORY_TREE.map((cat, i) => `
+      <div class="category-group" id="cat-group-${i}">
+        <div class="category-group-header" onclick="toggleCategoryGroup(${i})">
+          <span>${cat.icon} ${cat.name}</span>
+          <span class="chev">▾</span>
+        </div>
+        <div class="category-subs">
+          ${cat.subs.map(sub => `<div class="category-sub-item" onclick="selectCategory('${sub.replace(/'/g, "\\'")}', null, event)">${sub}</div>`).join('')}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function toggleCategoryPanel() {
+    document.getElementById('categoryPanel').classList.toggle('open');
+    document.getElementById('categoryDropdownBtn').classList.toggle('open');
+  }
+
+  function toggleCategoryGroup(i) {
+    document.getElementById('cat-group-' + i).classList.toggle('expanded');
+  }
+
+  function selectCategory(name, chipEl, evt) {
+    if (evt) evt.stopPropagation();
+    document.getElementById('categorySelectedLabel').textContent =
+      name === 'All' ? '📚 Browse by Category' : '📚 ' + name;
+    if (chipEl) {
+      document.querySelectorAll('.category-chip').forEach(c => c.classList.remove('active'));
+      chipEl.classList.add('active');
+    }
+    document.querySelectorAll('.category-sub-item').forEach(s => s.classList.remove('selected'));
+    if (evt && evt.target) evt.target.classList.add('selected');
+    document.getElementById('categoryPanel').classList.remove('open');
+    document.getElementById('categoryDropdownBtn').classList.remove('open');
+  }
+
+  renderCategoryPanel();
+
+  let translationVisible = false;
+  function toggleTranslation() {
+    translationVisible = !translationVisible;
+    document.getElementById('translation-overlay').style.display =
+      translationVisible ? 'block' : 'none';
+  }
+
+  let ttsPlaying = false;
+  function toggleTts() {
+    ttsPlaying = !ttsPlaying;
+    document.getElementById('tts-play-btn').textContent = ttsPlaying ? '⏸' : '▶';
+  }
+
+  function selectPlan(card) {
+    document.querySelectorAll('.plan-card').forEach(c => {
+      c.classList.remove('selected');
+      const radio = c.querySelector('.plan-radio');
+      radio.innerHTML = '';
+    });
+    card.classList.add('selected');
+    const radio = card.querySelector('.plan-radio');
+    radio.innerHTML = '<div class="plan-radio-dot"></div>';
+  }
+</script>
+
+</body>
+</html>
