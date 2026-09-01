@@ -35,7 +35,7 @@ export async function buildApp() {
 
   await app.register(cors, {
     origin: config.NODE_ENV === 'production'
-      ? ['https://zita.app', 'https://admin.zita.app']
+      ? (config.CORS_ORIGINS?.split(',').map((o) => o.trim()) ?? ['https://zita.app', 'https://admin.zita.app'])
       : true,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],

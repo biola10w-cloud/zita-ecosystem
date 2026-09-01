@@ -1,0 +1,2 @@
+web: npm run db:push:prod && npm start
+worker: npm run workers:start

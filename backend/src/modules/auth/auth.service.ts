@@ -1,15 +1,11 @@
 import crypto from 'crypto';
-import fs from 'fs';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { nanoid } from 'nanoid';
 import { prisma } from '../../shared/db/prisma';
 import { config } from '../../config';
 import { JwtPayload } from '../../shared/middleware/authenticate';
-
-// Load RSA keys once at startup
-const privateKey = fs.readFileSync(config.JWT_PRIVATE_KEY_PATH, 'utf8');
-const publicKey  = fs.readFileSync(config.JWT_PUBLIC_KEY_PATH, 'utf8');
+import { jwtPrivateKey as privateKey, jwtPublicKey as publicKey } from '../../shared/security/jwtKeys';
 
 const BCRYPT_ROUNDS = 12; // High cost â€” tokens are long-lived
 

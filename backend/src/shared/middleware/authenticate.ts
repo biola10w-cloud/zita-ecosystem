@@ -1,11 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import jwt from 'jsonwebtoken';
-import fs from 'fs';
-import { config } from '../../config';
+import { jwtPublicKey as publicKey } from '../security/jwtKeys';
 import { prisma } from '../db/prisma';
-
-// Load RSA public key once at startup
-const publicKey = fs.readFileSync(config.JWT_PUBLIC_KEY_PATH, 'utf8');
 
 export interface JwtPayload {
   sub: string;       // userId

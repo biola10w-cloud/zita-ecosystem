@@ -7,8 +7,13 @@ const envSchema = z.object({
   API_BASE_URL:           z.string().url(),
   DATABASE_URL:           z.string(),
   REDIS_URL:              z.string(),
-  JWT_PRIVATE_KEY_PATH:   z.string(),
-  JWT_PUBLIC_KEY_PATH:    z.string(),
+  JWT_PRIVATE_KEY_PATH:   z.string().optional(),
+  JWT_PUBLIC_KEY_PATH:    z.string().optional(),
+  // Inline PEM alternative to the *_PATH file variables — needed on hosts
+  // where shipping a keys/ file isn't practical (paste the PEM contents,
+  // literal "\n" line breaks are unescaped automatically).
+  JWT_PRIVATE_KEY:        z.string().optional(),
+  JWT_PUBLIC_KEY:         z.string().optional(),
   JWT_ACCESS_EXPIRY:      z.string().default('15m'),
   JWT_REFRESH_EXPIRY:     z.string().default('30d'),
   AWS_REGION:             z.string().default('us-east-1'),
@@ -17,11 +22,17 @@ const envSchema = z.object({
   S3_BUCKET_NAME:         z.string(),
   S3_ENDPOINT:            z.string().optional(),
   KMS_KEY_ARN:            z.string(),
-  APPLE_SHARED_SECRET:    z.string(),
-  APPLE_VERIFY_URL:       z.string().url(),
-  APPLE_SANDBOX_VERIFY_URL: z.string().url(),
-  GOOGLE_SERVICE_ACCOUNT_KEY_PATH: z.string(),
-  GOOGLE_PACKAGE_NAME:    z.string(),
+  // Apple/Google IAP — defaulted so the server can boot without these set
+  // (web-first launches via Stripe don't need them until native apps ship).
+  // Verification calls will simply fail at request time if left as defaults.
+  APPLE_SHARED_SECRET:    z.string().default(''),
+  APPLE_VERIFY_URL:       z.string().url().default('https://buy.itunes.apple.com/verifyReceipt'),
+  APPLE_SANDBOX_VERIFY_URL: z.string().url().default('https://sandbox.itunes.apple.com/verifyReceipt'),
+  GOOGLE_SERVICE_ACCOUNT_KEY_PATH: z.string().default(''),
+  GOOGLE_PACKAGE_NAME:    z.string().default(''),
+  // Optional — comma-separated list of allowed origins in production;
+  // falls back to the ZITA default domains if unset.
+  CORS_ORIGINS:           z.string().optional(),
   // Optional — only required when translation jobs actually run
   GOOGLE_TRANSLATE_API_KEY: z.string().optional(),
   // Optional — only required when Stripe (web) payments are enabled

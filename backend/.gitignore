@@ -8,3 +8,4 @@ keys/
 !package.json
 !package-lock.json
 !tsconfig.json
+!railway.json
