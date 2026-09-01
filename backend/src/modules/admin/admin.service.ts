@@ -139,6 +139,50 @@ export class AdminService {
     };
   }
 
+  // â”€â”€â”€ List all books (published + unpublished/pending encryption) â”€
+
+  static async listBooks(page: number, limit: number, search?: string) {
+    const skip = (page - 1) * limit;
+
+    const where = search
+      ? { title: { contains: search, mode: 'insensitive' as const } }
+      : {};
+
+    const [books, total] = await Promise.all([
+      prisma.book.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          authorName: true,
+          contentType: true,
+          coverUrl: true,
+          isPublished: true,
+          isPremium: true,
+          price: true,
+          totalChapters: true,
+          encryptedFileKey: true,
+          createdAt: true,
+          category: { select: { id: true, name: true } },
+        },
+      }),
+      prisma.book.count({ where }),
+    ]);
+
+    return {
+      books: books.map((b) => ({
+        ...b,
+        encryptionStatus: b.encryptedFileKey === 'pending' ? 'PENDING' : 'READY',
+        encryptedFileKey: undefined,
+      })),
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    };
+  }
+
   // â”€â”€â”€ Publish a book (after encryption is complete) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   static async publishBook(bookId: string) {

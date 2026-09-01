@@ -28,6 +28,13 @@ const createCategorySchema = z.object({
 export async function adminRoutes(app: FastifyInstance) {
   // â”€â”€â”€ Book management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+  // GET /api/v1/admin/books â€” list all books (published + pending)
+  app.get('/books', adminGuard, async (request, reply) => {
+    const { page = '1', limit = '20', search } = request.query as any;
+    const result = await AdminService.listBooks(Number(page), Number(limit), search);
+    return reply.send({ success: true, data: result.books, meta: result.pagination });
+  });
+
   // POST /api/v1/admin/books â€” upload + encrypt
   app.post('/books', adminGuard, async (request, reply) => {
     // Handle multipart: metadata (JSON field) + file + cover
