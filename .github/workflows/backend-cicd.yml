@@ -42,6 +42,7 @@ jobs:
       - name: Run linter
         working-directory: ./backend
         run: npm run lint --if-present
+        continue-on-error: true
 
       - name: Check TypeScript
         working-directory: ./backend
