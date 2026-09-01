@@ -98,17 +98,16 @@ jobs:
         run: |
           cat > .env << EOF
           NODE_ENV=test
+          API_BASE_URL=http://localhost:3000
           DATABASE_URL=postgresql://test:testpass@localhost:5432/zita_test
           REDIS_URL=redis://localhost:6379
-          JWT_SECRET_KEY_PATH=./keys/test-jwt-secret.key
+          JWT_PRIVATE_KEY_PATH=./keys/test-jwt-secret.key
           JWT_PUBLIC_KEY_PATH=./keys/test-jwt-public.key
           KMS_KEY_ARN=arn:aws:kms:us-east-1:123456789012:key/test-key
           AWS_REGION=us-east-1
           S3_BUCKET_NAME=zita-test-bucket
           AWS_ACCESS_KEY_ID=test
           AWS_SECRET_ACCESS_KEY=test
-          APPLE_BUNDLE_ID=com.zita.app
-          GOOGLE_PACKAGE_NAME=com.zita.app
           EOF
 
       - name: Generate JWT test keys
@@ -118,11 +117,11 @@ jobs:
           openssl genrsa -out ./keys/test-jwt-secret.key 2048
           openssl rsa -in ./keys/test-jwt-secret.key -pubout -out ./keys/test-jwt-public.key
 
-      - name: Run Prisma migrations
+      - name: Sync Prisma schema
         working-directory: ./backend
         env:
           DATABASE_URL: postgresql://test:testpass@localhost:5432/zita_test
-        run: npx prisma migrate deploy --preview-feature
+        run: npx prisma db push --accept-data-loss --skip-generate
 
       - name: Run tests
         working-directory: ./backend
