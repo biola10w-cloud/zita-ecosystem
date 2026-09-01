@@ -6,4 +6,5 @@ keys/
 *.json
 !.env.example
 !package.json
+!package-lock.json
 !tsconfig.json
