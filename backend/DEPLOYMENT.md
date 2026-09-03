@@ -22,8 +22,26 @@ unless an RSA KMS key was intentionally provisioned.
    values.
 2. Ensure development JWT PEM files exist in `keys/`.
 3. Run `docker compose up --build`.
-4. Run `npm run db:push:prod` only against an empty local database. Use checked
-   migrations, not `db push`, for staging or production.
+4. Run `npm run db:migrate` against the empty local database.
+
+## Database Migration Rollout
+
+New environments apply the checked-in migration history with:
+
+```sh
+npm run db:migrate
+```
+
+For an existing staging or production database that was previously initialized
+with `prisma db push`, take a verified backup, confirm it matches the current
+schema, then mark the baseline migration as applied once:
+
+```sh
+npx prisma migrate resolve --applied 20260903140000_init
+```
+
+Do not run this baseline command against a new database. All subsequent deploys
+should use `npm run db:migrate` only.
 
 Before opening the pilot, exercise an upload through publishing and read the
 result with a non-admin test user.
