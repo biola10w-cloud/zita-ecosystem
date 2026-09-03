@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { AdminService } from './admin.service';
 import { authenticate, requireRole } from '../../shared/middleware/authenticate';
+import { isSupportedBookFile, normalizeBookContent } from '../../shared/content/docx';
 
 const adminGuard = { preHandler: [authenticate, requireRole('ADMIN')] };
 const modGuard   = { preHandler: [authenticate, requireRole('ADMIN', 'MODERATOR')] };
@@ -41,6 +42,8 @@ export async function adminRoutes(app: FastifyInstance) {
     const parts = request.parts();
     let metadata: any = null;
     let rawFileBuffer: Buffer | null = null;
+    let contentFilename = '';
+    let contentMimeType = '';
     let coverBuffer: Buffer | null = null;
     let coverMimeType = 'image/jpeg';
 
@@ -49,6 +52,8 @@ export async function adminRoutes(app: FastifyInstance) {
         metadata = JSON.parse(part.value as string);
       } else if (part.type === 'file' && part.fieldname === 'content') {
         rawFileBuffer = await part.toBuffer();
+        contentFilename = part.filename;
+        contentMimeType = part.mimetype;
       } else if (part.type === 'file' && part.fieldname === 'cover') {
         coverBuffer = await part.toBuffer();
         coverMimeType = part.mimetype;
@@ -62,10 +67,20 @@ export async function adminRoutes(app: FastifyInstance) {
       });
     }
 
+    if (!isSupportedBookFile(contentFilename, contentMimeType)) {
+      return reply.status(415).send({
+        success: false,
+        error: { code: 'UNSUPPORTED_CONTENT_TYPE', message: 'Content must be a .txt, .md, or .docx file' },
+      });
+    }
+
     const input = createBookSchema.parse(metadata);
+    // DOCX sources are converted here and discarded. Only the normalized text
+    // reaches private temporary storage before the worker encrypts it.
+    const normalizedContent = await normalizeBookContent(contentFilename, contentMimeType, rawFileBuffer);
     const result = await AdminService.createBook(
       input,
-      rawFileBuffer,
+      normalizedContent,
       coverBuffer,
       coverMimeType,
     );

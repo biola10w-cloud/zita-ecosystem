@@ -4,6 +4,7 @@ import helmet from '@fastify/helmet';
 import multipart from '@fastify/multipart';
 import { config } from './config';
 import { errorHandler } from './shared/middleware/errorHandler';
+import { registerRateLimiter } from './shared/middleware/rateLimiter';
 
 // Route modules
 import { authRoutes }          from './modules/auth/auth.routes';
@@ -40,6 +41,8 @@ export async function buildApp() {
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   });
+
+  await registerRateLimiter(app);
 
   // â”€â”€â”€ File uploads (admin book upload) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 

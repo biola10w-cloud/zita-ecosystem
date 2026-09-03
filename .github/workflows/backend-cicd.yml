@@ -266,7 +266,7 @@ jobs:
           echo "$DEPLOY_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
-          ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST "cd /app && git pull origin develop && npm install && npm run build && npm run migrate:prod && pm2 restart zita-backend"
+          ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST "cd /app && git pull origin develop && npm install && npm run build && npm run db:push:prod && pm2 restart zita-backend"
 
   deploy-production:
     name: 🚀 Deploy to Production
@@ -292,7 +292,7 @@ jobs:
           echo "$DEPLOY_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
-          ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST "cd /app && git pull origin main && npm install && npm run build && npm run migrate:prod && pm2 restart zita-backend"
+          ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST "cd /app && git pull origin main && npm install && npm run build && npm run db:push:prod && pm2 restart zita-backend"
 
       - name: Notify Slack
         uses: slackapi/slack-github-action@v1.24.0

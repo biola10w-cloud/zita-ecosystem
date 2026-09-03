@@ -68,10 +68,11 @@ export class AdminService {
     const uniqueSuffix = nanoid(6).toLowerCase();
     const slug = `${baseSlug}-${uniqueSuffix}`;
 
-    // 1. Upload raw (unencrypted) file to temporary S3 location
-    //    This will be deleted by the encryption worker after processing
-    const rawS3Key = `temp/raw/${slug}-${Date.now()}.txt`;
-    await S3Service.uploadEncryptedContent(rawS3Key, rawFileBuffer);
+    // 1. Upload normalized source text to a private temporary S3 location.
+    //    The source DOCX has already been discarded by the route handler and
+    //    this object is deleted by the encryption worker after processing.
+    const rawS3Key = `temp/normalized/${slug}-${Date.now()}.txt`;
+    await S3Service.uploadPrivateSource(rawS3Key, rawFileBuffer);
 
     // 2. Upload cover (public asset)
     const coverKey = `covers/${slug}`;

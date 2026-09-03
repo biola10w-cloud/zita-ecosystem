@@ -1,0 +1,11 @@
+node_modules
+dist
+coverage
+.env
+keys
+*.pem
+*.key
+npm-debug.log
+Dockerfile*
+docker-compose.yml
+*.md

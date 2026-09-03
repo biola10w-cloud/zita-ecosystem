@@ -22,6 +22,11 @@ const envSchema = z.object({
   S3_BUCKET_NAME:         z.string(),
   S3_ENDPOINT:            z.string().optional(),
   KMS_KEY_ARN:            z.string(),
+  KMS_ENCRYPTION_ALGORITHM: z.enum([
+    'SYMMETRIC_DEFAULT',
+    'RSAES_OAEP_SHA_256',
+    'RSAES_OAEP_SHA_1',
+  ]).default('SYMMETRIC_DEFAULT'),
   // Apple/Google IAP — defaulted so the server can boot without these set
   // (web-first launches via Stripe don't need them until native apps ship).
   // Verification calls will simply fail at request time if left as defaults.

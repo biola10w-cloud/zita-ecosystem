@@ -27,7 +27,7 @@ export class KeyManager {
     const command = new EncryptCommand({
       KeyId: config.KMS_KEY_ARN,
       Plaintext: Buffer.from(rawKeyHex, 'hex'),
-      EncryptionAlgorithm: 'RSAES_OAEP_SHA_256',
+      EncryptionAlgorithm: config.KMS_ENCRYPTION_ALGORITHM,
     });
 
     const response = await KeyManager.client.send(command);
@@ -51,7 +51,7 @@ export class KeyManager {
     const command = new DecryptCommand({
       KeyId: config.KMS_KEY_ARN,
       CiphertextBlob: ciphertextBlob,
-      EncryptionAlgorithm: 'RSAES_OAEP_SHA_256',
+      EncryptionAlgorithm: config.KMS_ENCRYPTION_ALGORITHM,
     });
 
     const response = await KeyManager.client.send(command);

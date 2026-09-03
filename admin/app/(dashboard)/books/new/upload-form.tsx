@@ -137,8 +137,8 @@ export function UploadForm({ categories }: { categories: CategoryOption[] }) {
         <input name="tags" placeholder="finance, investing, mindset" className={inputClass} />
       </Field>
 
-      <Field label="Book content (.txt or .md)">
-        <input name="content" type="file" accept=".txt,.md" required className={inputClass} />
+      <Field label="Book content (.docx, .txt, or .md)">
+        <input name="content" type="file" accept=".docx,.txt,.md,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required className={inputClass} />
       </Field>
 
       <Field label="Cover image (JPG, PNG, WebP)">

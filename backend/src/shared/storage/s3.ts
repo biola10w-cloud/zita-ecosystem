@@ -20,6 +20,22 @@ const s3 = new S3Client({
 
 export class S3Service {
   /**
+   * Stores normalized source text only while the encryption worker is pending.
+   * This bucket key is never returned to a client and is deleted after the
+   * encrypted chapters have been persisted.
+   */
+  static async uploadPrivateSource(key: string, content: Buffer): Promise<void> {
+    await s3.send(new PutObjectCommand({
+      Bucket: config.S3_BUCKET_NAME,
+      Key: key,
+      Body: content,
+      ContentType: 'text/plain; charset=utf-8',
+      ContentDisposition: 'inline',
+      ServerSideEncryption: 'AES256',
+    }));
+  }
+
+  /**
    * Upload encrypted book content.
    * Content is ALWAYS pre-encrypted before reaching this method.
    * S3 never sees plaintext.
