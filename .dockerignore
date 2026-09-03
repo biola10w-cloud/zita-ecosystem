@@ -1,0 +1,13 @@
+.git
+.github
+admin
+client
+backend/node_modules
+backend/dist
+backend/coverage
+backend/.env
+backend/keys
+backend/*.log
+node_modules
+*.log
+*.md
