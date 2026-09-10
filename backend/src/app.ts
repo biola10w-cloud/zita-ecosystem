@@ -29,6 +29,9 @@ export async function buildApp() {
     trustProxy: true,
   });
 
+  // Register before plugins so every encapsulated route inherits this handler.
+  app.setErrorHandler(errorHandler);
+
   // â”€â”€â”€ Security plugins â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   await app.register(helmet, {
@@ -67,10 +70,6 @@ export async function buildApp() {
   await app.register(analyticsRoutes,     { prefix: '/api/v1/analytics' });
   await app.register(adminRoutes,         { prefix: '/api/v1/admin' });
   await app.register(authorsRoutes,       { prefix: '/api/v1/authors' });
-
-  // â”€â”€â”€ Error handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-  app.setErrorHandler(errorHandler);
 
   // â”€â”€â”€ Health check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
