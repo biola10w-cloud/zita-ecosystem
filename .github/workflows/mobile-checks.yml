@@ -29,3 +29,5 @@ jobs:
       - run: flutter test
       - name: Compile iOS simulator app
         run: flutter build ios --simulator --debug --dart-define-from-file=config/production.json
+      - name: Compile unsigned iOS release app
+        run: flutter build ios --release --no-codesign --dart-define-from-file=config/production.json

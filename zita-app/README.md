@@ -58,8 +58,10 @@ flutter build ipa --dart-define-from-file=config/production.json
 ```
 
 An unsigned build checks compilation; it is not a TestFlight upload. The included
-GitHub workflow runs analysis, tests, and an unsigned iOS simulator build when
-these changes are pushed. It has not yet run remotely.
+GitHub workflow runs analysis, tests, iOS simulator compilation, and an unsigned
+iOS release build. Current results are available in
+[draft PR #50](https://github.com/biola10w-cloud/zita-ecosystem/pull/50).
+Neither native compilation check performs distribution signing or device testing.
 
 This implementation is not yet ready for App Store submission.
 
@@ -68,6 +70,7 @@ This implementation is not yet ready for App Store submission.
 - Flutter static analysis passed with no issues.
 - All ten API/session and reader widget tests passed, including automatic progress
   saving and the exit flow when saving fails.
-- A debug asset-bundle build could not complete because the Android SDK is not
-  installed. No native binary has been built or tested on a device here.
+- A local debug asset-bundle build could not complete because the Android SDK is
+  not installed. Native iOS compilation runs on the GitHub macOS runner; no
+  physical-device test has been performed here.
 - Railway successfully built and deployed the repaired backend Dockerfile.
