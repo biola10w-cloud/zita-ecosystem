@@ -4,7 +4,7 @@ import {
   GetObjectCommand,
   DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { coverContentType } from './cover';
 import { config } from '../../config';
 import { Readable } from 'stream';
 
@@ -90,6 +90,10 @@ export class S3Service {
     content: Buffer,
     contentType: string,
   ): Promise<string> {
+    const detectedType = coverContentType(content);
+    if (!/^covers\/[a-z0-9_-]+$/.test(key) || !detectedType || detectedType !== contentType) {
+      throw Object.assign(new Error('Cover must be a JPEG, PNG, or WebP image.'), { statusCode: 415 });
+    }
     await s3.send(new PutObjectCommand({
       Bucket: config.S3_BUCKET_NAME,
       Key: `public/${key}`,
@@ -97,10 +101,9 @@ export class S3Service {
       ContentType: contentType,
     }));
 
-    // Served through the CDN when configured, falling back to a direct
-    // (unconfigured) placeholder domain otherwise.
-    const cdnBase = config.CDN_BASE_URL ?? 'https://cdn.zita.app';
-    return `${cdnBase}/public/${key}`;
+    if (config.CDN_BASE_URL) return `${config.CDN_BASE_URL.replace(/\/$/, '')}/public/${key}`;
+    const apiBase = config.API_BASE_URL.replace(/\/$/, '').replace(/\/api\/v1$/, '');
+    return `${apiBase}/api/v1/assets/${key}`;
   }
 
   static async deleteObject(key: string): Promise<void> {

@@ -10,6 +10,7 @@ import { registerRateLimiter } from './shared/middleware/rateLimiter';
 import { authRoutes }          from './modules/auth/auth.routes';
 import { usersRoutes }         from './modules/users/users.routes';
 import { booksRoutes }         from './modules/books/books.routes';
+import { assetsRoutes }        from './modules/books/assets.routes';
 import { readerRoutes }        from './modules/reader/reader.routes';
 import { communityRoutes }     from './modules/community/community.routes';
 import { subscriptionsRoutes } from './modules/subscriptions/subscriptions.routes';
@@ -58,6 +59,7 @@ export async function buildApp() {
   await app.register(authRoutes,          { prefix: '/api/v1/auth' });
   await app.register(usersRoutes,         { prefix: '/api/v1/users' });
   await app.register(booksRoutes,         { prefix: '/api/v1/books' });
+  await app.register(assetsRoutes,        { prefix: '/api/v1/assets' });
   await app.register(readerRoutes,        { prefix: '/api/v1/books' });
   await app.register(communityRoutes,     { prefix: '/api/v1' });
   await app.register(subscriptionsRoutes, { prefix: '/api/v1/subscriptions' });

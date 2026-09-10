@@ -108,6 +108,7 @@ export function UploadForm({ categories }: { categories: CategoryOption[] }) {
           <option value="">— No category —</option>
           {categories.map((cat) => (
             <optgroup key={cat.id} label={cat.name}>
+              <option value={cat.id}>{cat.name}</option>
               {cat.children.map((sub) => (
                 <option key={sub.id} value={sub.id}>
                   {sub.name}
@@ -142,7 +143,7 @@ export function UploadForm({ categories }: { categories: CategoryOption[] }) {
       </Field>
 
       <Field label="Cover image (JPG, PNG, WebP)">
-        <input name="cover" type="file" accept="image/*" required className={inputClass} />
+        <input name="cover" type="file" accept="image/jpeg,image/png,image/webp" required className={inputClass} />
       </Field>
 
       {error && <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>}

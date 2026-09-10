@@ -1,5 +1,6 @@
 import { prisma } from '../../shared/db/prisma';
 import { S3Service } from '../../shared/storage/s3';
+import { coverContentType } from '../../shared/storage/cover';
 import { encryptionQueue, translationQueue } from '../../shared/queue/queues';
 import { nanoid } from 'nanoid';
 
@@ -59,6 +60,9 @@ export class AdminService {
     coverMimeType: string,
     authorId: string | null,
   ) {
+    if (!coverContentType(coverBuffer) || coverContentType(coverBuffer) !== coverMimeType) {
+      throw Object.assign(new Error('Cover must be a JPEG, PNG, or WebP image.'), { statusCode: 415 });
+    }
     // Generate a stable slug from the title
     const baseSlug = input.title
       .toLowerCase()

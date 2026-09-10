@@ -201,7 +201,16 @@ export class BooksService {
   static async getBySlug(slug: string, userId?: string) {
     const book = await prisma.book.findUniqueOrThrow({
       where: { slug, isPublished: true },
-      include: {
+      select: {
+        id: true, slug: true, title: true, authorName: true,
+        description: true, coverUrl: true, contentType: true, language: true,
+        totalChapters: true, estimatedMinutes: true, isPremium: true,
+        price: true, isPublished: true, publishedAt: true,
+        createdAt: true, updatedAt: true, categoryId: true, authorId: true,
+        chapters: {
+          select: { chapterIndex: true, title: true, wordCount: true },
+          orderBy: { chapterIndex: 'asc' },
+        },
         category: { select: { id: true, name: true, slug: true, icon: true } },
         author: { select: { id: true, displayName: true, avatarUrl: true } },
         tags: { include: { tag: true } },
@@ -257,7 +266,7 @@ export class BooksService {
       prisma.purchase.findFirst({ where: { userId, bookId } }),
     ]);
 
-    if (!book) return { hasAccess: false, reason: 'BOOK_NOT_FOUND' };
+    if (!book || !book.isPublished) return { hasAccess: false, reason: 'BOOK_NOT_FOUND' };
     if (!book.isPremium) return { hasAccess: true, reason: 'FREE' };
     if (purchase) return { hasAccess: true, reason: 'PURCHASED' };
 
