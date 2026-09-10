@@ -1,0 +1,33 @@
+name: Mobile checks
+on:
+  pull_request:
+    paths: ['zita-app/**', '.github/workflows/mobile-checks.yml']
+  push:
+    branches: [main]
+    paths: ['zita-app/**', '.github/workflows/mobile-checks.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mobile:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: zita-app
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Flutter
+        run: |
+          git clone --depth 1 --branch 3.47.3 https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - run: flutter pub get --enforce-lockfile
+      - run: dart format --output=none --set-exit-if-changed lib test
+      - run: flutter analyze
+      - run: flutter test
+      - name: Compile iOS simulator app
+        run: flutter build ios --simulator --debug --dart-define-from-file=config/production.json
+      - name: Compile unsigned iOS release app
+        run: flutter build ios --release --no-codesign --dart-define-from-file=config/production.json
