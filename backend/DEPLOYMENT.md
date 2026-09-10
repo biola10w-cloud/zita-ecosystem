@@ -26,6 +26,10 @@ unless an RSA KMS key was intentionally provisioned.
 
 ## Database Migration Rollout
 
+If the database contains the legacy `0_init` migration and lowercase tables such
+as `users` and `books`, follow [the legacy upgrade procedure](prisma/LEGACY_UPGRADE.md)
+first. Do not apply or mark the current baseline until that schema has been upgraded.
+
 New environments apply the checked-in migration history with:
 
 ```sh
