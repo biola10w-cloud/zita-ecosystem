@@ -5,6 +5,11 @@ import { rateLimits } from '../../shared/middleware/rateLimiter';
 
 export async function communityRoutes(app: FastifyInstance) {
   const api = { config: { rateLimit: rateLimits.api } };
+  app.get('/community/posts', api, CommunityController.listComments);
+  app.post('/community/posts', {
+    preHandler: [authenticate],
+    config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+  }, CommunityController.createComment);
 
   // GET /api/v1/books/:slug/comments  (public)
   app.get('/books/:slug/comments', api, CommunityController.listComments);

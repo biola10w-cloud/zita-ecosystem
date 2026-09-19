@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const SESSION_COOKIE = 'zita_admin_session';
-const REFRESH_COOKIE = 'zita_admin_refresh';
 
 export function middleware(request: NextRequest) {
-  const hasSession = request.cookies.has(SESSION_COOKIE) || request.cookies.has(REFRESH_COOKIE);
+  // A refresh cookie cannot authorize dashboard requests. Once the access
+  // cookie expires, let the user sign in instead of rendering an unauthorized
+  // dashboard (and redirecting them away from the login page).
+  const hasSession = Boolean(request.cookies.get(SESSION_COOKIE)?.value);
   const isLoginPage = request.nextUrl.pathname.startsWith('/login');
   const isAuthApi = request.nextUrl.pathname.startsWith('/api/auth');
 

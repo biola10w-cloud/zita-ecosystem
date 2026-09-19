@@ -1,4 +1,5 @@
 import { prisma } from '../../shared/db/prisma';
+import { readingStreakFromDates } from './reading-streak';
 
 export class AnalyticsService {
   // â”€â”€â”€ Ingest a batch of events from the app â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -156,6 +157,7 @@ export class AnalyticsService {
     const inProgressBooks = await prisma.readingProgress.findMany({
       where: {
         userId,
+        book: { isPublished: true },
         completedAt: null,
         percentComplete: { gt: 0 },
       },
@@ -176,7 +178,7 @@ export class AnalyticsService {
     });
 
     const recentHighlights = await prisma.highlight.findMany({
-      where: { userId },
+      where: { userId, book: { isPublished: true } },
       include: {
         book: { select: { id: true, title: true, slug: true } },
       },
@@ -199,32 +201,13 @@ export class AnalyticsService {
   private static async calculateStreak(userId: string): Promise<number> {
     // Get distinct reading days ordered descending
     const readingDays = await prisma.$queryRaw<Array<{ date: Date }>>`
-      SELECT DISTINCT DATE(last_read_at) as date
-      FROM reading_progress
-      WHERE user_id = ${userId}
+      SELECT DISTINCT DATE("occurredAt") as date
+      FROM "AnalyticsEvent"
+      WHERE "userId" = ${userId}
+        AND "eventType" IN ('chapter_open', 'reading_session_end')
       ORDER BY date DESC
     `;
 
-    if (readingDays.length === 0) return 0;
-
-    let streak = 0;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    for (let i = 0; i < readingDays.length; i++) {
-      const day = new Date(readingDays[i].date);
-      day.setHours(0, 0, 0, 0);
-
-      const expected = new Date(today);
-      expected.setDate(today.getDate() - i);
-
-      if (day.getTime() === expected.getTime()) {
-        streak++;
-      } else {
-        break;
-      }
-    }
-
-    return streak;
+    return readingStreakFromDates(readingDays.map((entry) => entry.date));
   }
 }

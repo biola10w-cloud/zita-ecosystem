@@ -3,10 +3,26 @@ import { S3Service } from '../../shared/storage/s3';
 import { BookCrypto } from '../../shared/encryption/bookCrypto';
 import { KeyManager } from '../../shared/encryption/keyManager';
 import { PollyService } from '../../shared/tts/polly';
-import { audioQueue } from '../../shared/queue/queues';
+import { audioQueue, translationQueue } from '../../shared/queue/queues';
+import { config } from '../../config';
 import { BooksService } from '../books/books.service';
 
 export class ReaderService {
+  static async requestTranslation(userId: string, slug: string, language: string) {
+    const book = await prisma.book.findUniqueOrThrow({ where: { slug } });
+    const access = await BooksService.checkUserAccess(userId, book.id);
+    if (!access.hasAccess) throw Object.assign(new Error('Subscription required to access this content'), { statusCode: 403 });
+    if (language === book.language) return { status: 'COMPLETED' };
+    const existing = await prisma.bookTranslation.findUnique({ where: { bookId_language: { bookId: book.id, language } } });
+    if (existing) return { status: existing.status };
+    if (!config.GOOGLE_TRANSLATE_API_KEY) throw Object.assign(new Error('Automatic translation is not available yet. Please read in the original language or choose an existing translation.'), { statusCode: 503 });
+    const translation = existing ?? await prisma.bookTranslation.upsert({
+      where: { bookId_language: { bookId: book.id, language } },
+      create: { bookId: book.id, language, status: 'PENDING' }, update: {},
+    });
+    await translationQueue.add({ bookId: book.id, targetLanguage: language, translationId: translation.id }, { jobId: `reader-translation-${translation.id}` });
+    return { status: translation.status };
+  }
   // â”€â”€â”€ Get decrypted chapter content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   /**
@@ -67,11 +83,15 @@ export class ReaderService {
         where: { bookId_language: { bookId: book.id, language } },
       });
 
+      if (translation?.status !== 'COMPLETED' || !translation.encryptedFileKey) {
+        throw Object.assign(new Error('This translation is not ready yet.'), { statusCode: 409 });
+      }
       if (translation?.status === 'COMPLETED' && translation.encryptedFileKey) {
         const translatedChapter = await prisma.translatedChapter.findUnique({
           where: { translationId_chapterIndex: { translationId: translation.id, chapterIndex } },
         });
 
+        if (!translatedChapter) throw Object.assign(new Error('This translated chapter is unavailable.'), { statusCode: 409 });
         if (translatedChapter) {
           encryptedKey = translatedChapter.s3Key;
           wrappedBek   = translation.encryptedFileKey;

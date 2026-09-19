@@ -65,6 +65,22 @@ Neither native compilation check performs distribution signing or device testing
 
 This implementation is not yet ready for App Store submission.
 
+## Release checkpoint — September 17, 2026
+
+- GitHub [Mobile checks run 34468123632](https://github.com/biola10w-cloud/zita-ecosystem/actions/runs/34468123632)
+  passed for commit `b101299`: formatting, analysis, tests, iOS simulator
+  compilation, and unsigned iOS release compilation all succeeded.
+- The production API `/health` returned HTTP 200 with status `ok`.
+- The public `/api/v1/books` endpoint returned HTTP 200 with an empty library
+  (`total: 0`). A published book is required before validating chapter reading
+  and saved-position resume against production.
+- Flutter detected Windows, Chrome, and Edge only; no physical mobile device
+  was connected. Native device integration remains unverified.
+- Next: provide a dedicated reader test account and a published book, then test
+  sign-in, chapter navigation, progress saving, app restart/resume, and sign-out
+  on a mobile device. iOS distribution signing and TestFlight remain separate
+  release steps.
+
 ## Verification in this workspace
 
 - Flutter static analysis passed with no issues.

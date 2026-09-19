@@ -1,14 +1,15 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../shared/db/prisma';
 
 export interface CreateCommentInput {
   userId:   string;
-  bookSlug: string;
+  bookSlug?: string;
   body:     string;
   parentId?: string;
 }
 
 export interface ListCommentsQuery {
-  bookSlug: string;
+  bookSlug?: string;
   page:     number;
   limit:    number;
   sort:     'recent' | 'popular';
@@ -21,22 +22,22 @@ export class CommunityService {
     const { bookSlug, page, limit, sort } = query;
     const skip = (page - 1) * limit;
 
-    const book = await prisma.book.findUniqueOrThrow({
-      where: { slug: bookSlug },
-      select: { id: true },
-    });
+    const book = bookSlug ? await prisma.book.findFirst({
+      where: { slug: bookSlug, isPublished: true }, select: { id: true },
+    }) : null;
+    if (bookSlug && !book) throw Object.assign(new Error('Book not found'), { statusCode: 404 });
 
+    const where: Prisma.CommentWhereInput = {
+      parentId: null, isDeleted: false,
+      ...(book ? { bookId: book.id } : { OR: [{ bookId: null }, { book: { isPublished: true } }] }),
+    };
     const orderBy = sort === 'popular'
       ? [{ likes: { _count: 'desc' as const } }, { createdAt: 'desc' as const }]
       : [{ createdAt: 'desc' as const }];
 
     const [comments, total] = await Promise.all([
       prisma.comment.findMany({
-        where: {
-          bookId:    book.id,
-          parentId:  null,       // Top-level only
-          isDeleted: false,
-        },
+        where,
         skip,
         take: limit,
         orderBy,
@@ -70,7 +71,7 @@ export class CommunityService {
         },
       }),
       prisma.comment.count({
-        where: { bookId: book.id, parentId: null, isDeleted: false },
+        where,
       }),
     ]);
 
@@ -99,16 +100,17 @@ export class CommunityService {
       throw err;
     }
 
-    const book = await prisma.book.findUniqueOrThrow({
-      where: { slug: bookSlug },
-      select: { id: true },
-    });
+    const book = bookSlug ? await prisma.book.findFirst({
+      where: { slug: bookSlug, isPublished: true }, select: { id: true },
+    }) : null;
+    if (bookSlug && !book) throw Object.assign(new Error('Book not found'), { statusCode: 404 });
 
     // If a parentId is provided, validate it exists and belongs to this book
     let parentAuthorId: string | null = null;
+    let bookId = book?.id ?? null;
     if (parentId) {
       const parent = await prisma.comment.findFirst({
-        where: { id: parentId, bookId: book.id, isDeleted: false },
+        where: { id: parentId, isDeleted: false, ...(book ? { bookId: book.id } : { OR: [{ bookId: null }, { book: { isPublished: true } }] }) },
       });
       if (!parent) {
         const err: any = new Error('Parent comment not found');
@@ -123,12 +125,13 @@ export class CommunityService {
         throw err;
       }
       parentAuthorId = parent.userId;
+      bookId = parent.bookId;
     }
 
     const comment = await prisma.comment.create({
       data: {
         userId,
-        bookId: book.id,
+        bookId,
         body: body.trim(),
         parentId,
       },
@@ -146,7 +149,7 @@ export class CommunityService {
         parentAuthorId,
         'New reply on your comment',
         `${comment.user.displayName}: ${comment.body.slice(0, 100)}`,
-        { bookSlug, commentId: comment.id },
+        { ...(bookSlug ? { bookSlug } : { screen: 'community' }), commentId: comment.id },
       ).catch(() => {});
     }
 

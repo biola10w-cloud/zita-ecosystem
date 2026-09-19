@@ -2,6 +2,7 @@
 .github
 admin
 client
+zita-app
 backend/node_modules
 backend/dist
 backend/coverage
