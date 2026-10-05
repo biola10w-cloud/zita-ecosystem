@@ -35,6 +35,29 @@ For a database created before migration history was introduced, back it up,
 confirm its schema, then run the one-time baseline command in
 `backend/DEPLOYMENT.md` before future `npm run db:migrate` deploys.
 
+### Book editing, deletion, and multiple categories
+
+Apply `20260924210000_book_management` with `npm run db:migrate` before
+deploying this version of the API, workers, admin, and reader. It copies
+existing category assignments into `BookCategory`; the primary category
+remains available to older clients. No book content is rewritten.
+
+Admins can edit book details and select several categories from Books → Edit.
+Deletion permanently removes the book and its dependent records after an
+admin confirms. It also writes a durable `DeletedBook` cleanup request in
+the same database transaction. The worker checks these requests every minute,
+waits for active book jobs, and removes the book's stored content and cover.
+Failed cleanup requests remain in the database and retry automatically.
+The worker's storage credentials need bucket listing permission (`s3:ListBucket`)
+and object deletion permission (`s3:DeleteObject`) for `books/`,
+`temp/normalized/`, and `public/covers/`. Existing CDN caches may continue
+serving a cover until their cache lifetime expires.
+
+To verify locally, run the focused backend book-management, search, publishing,
+storage and cleanup-worker unit tests. Build `admin`, then run
+`node node_modules/@playwright/test/cli.js test --config=playwright.admin.config.ts`
+from `client` for admin browser tests against fixture data.
+
 ## 4. Go-Live Checks
 
 1. Confirm API health and worker logs are both clean after deployment.

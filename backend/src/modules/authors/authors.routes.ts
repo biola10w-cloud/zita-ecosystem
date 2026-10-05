@@ -14,6 +14,7 @@ const createBookSchema = z.object({
   price:            z.number().optional(),
   tags:             z.array(z.string()).default([]),
   categoryId:       z.string().optional(),
+  categoryIds:      z.array(z.string().min(1)).max(50).optional(),
   title:            z.string().min(1).max(200),
 });
 

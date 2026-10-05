@@ -8,16 +8,22 @@ const adminGuard = { preHandler: [authenticate, requireRole('ADMIN')] };
 const modGuard   = { preHandler: [authenticate, requireRole('ADMIN', 'MODERATOR')] };
 
 const createBookSchema = z.object({
-  title:            z.string().min(1).max(200),
-  authorName:       z.string().min(1).max(100),
-  description:      z.string().min(1).max(5000),
+  title:            z.string().trim().min(1).max(200),
+  authorName:       z.string().trim().min(1).max(100),
+  description:      z.string().trim().min(1).max(5000),
   contentType:      z.enum(['BOOK', 'STORY', 'SUMMARY']),
   language:         z.string().length(2),
   estimatedMinutes: z.number().int().min(1),
   isPremium:        z.boolean().default(true),
-  price:            z.number().optional(),
-  tags:             z.array(z.string()).default([]),
+  price:            z.number().finite().min(0).max(99999999.99).optional(),
+  tags:             z.array(z.string().trim().min(1).max(60)).max(50).default([]),
   categoryId:       z.string().optional(),
+  categoryIds:      z.array(z.string().min(1)).max(50).optional(),
+});
+
+const updateBookSchema = createBookSchema.omit({ categoryId: true }).extend({
+  categoryIds: z.array(z.string().min(1)).max(50),
+  price: z.number().finite().min(0).max(99999999.99).nullable().optional(),
 });
 
 const createCategorySchema = z.object({
@@ -31,9 +37,30 @@ export async function adminRoutes(app: FastifyInstance) {
 
   // GET /api/v1/admin/books â€” list all books (published + pending)
   app.get('/books', adminGuard, async (request, reply) => {
-    const { page = '1', limit = '20', search } = request.query as any;
-    const result = await AdminService.listBooks(Number(page), Number(limit), search);
+    const { page, limit, search } = z.object({
+      page: z.coerce.number().int().min(1).default(1),
+      limit: z.coerce.number().int().min(1).max(100).default(20),
+      search: z.string().trim().max(200).optional(),
+    }).parse(request.query);
+    const result = await AdminService.listBooks(page, limit, search);
     return reply.send({ success: true, data: result.books, meta: result.pagination });
+  });
+
+  app.get('/books/:id', adminGuard, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    return reply.send({ success: true, data: await AdminService.getBook(id) });
+  });
+
+  app.put('/books/:id', adminGuard, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const book = await AdminService.updateBook(id, updateBookSchema.parse(request.body));
+    return reply.send({ success: true, data: book });
+  });
+
+  app.delete('/books/:id', adminGuard, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    await AdminService.deleteBook(id);
+    return reply.send({ success: true, data: null });
   });
 
   // POST /api/v1/admin/books â€” upload + encrypt

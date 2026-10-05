@@ -149,6 +149,7 @@ model Book {
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
   category          Category?    @relation(fields: [categoryId], references: [id])
+  categories        BookCategory[]
   author            User?        @relation("AuthorBooks", fields: [authorId], references: [id])
   chapters          Chapter[]
   translations      BookTranslation[]
@@ -175,8 +176,25 @@ model Category {
   children  Category[] @relation("CategoryHierarchy")
   createdAt DateTime   @default(now())
   books     Book[]
+  bookCategories BookCategory[]
   @@unique([parentId, name])
   @@index([parentId])
+}
+
+model BookCategory {
+  bookId     String
+  categoryId String
+  book       Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  @@id([bookId, categoryId])
+  @@index([categoryId])
+}
+
+// Durable storage cleanup requests survive API/worker restarts.
+model DeletedBook {
+  id        String   @id
+  slug      String
+  createdAt DateTime @default(now())
 }
 
 model Chapter {

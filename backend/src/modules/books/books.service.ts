@@ -1,7 +1,9 @@
 import { prisma } from '../../shared/db/prisma';
 import { Prisma } from '@prisma/client';
+import { categoryFilter, categorySelection, flattenCategories } from './book-categories';
 
 export interface BooksQuery {
+  search?: string;
   type?:       'BOOK' | 'STORY' | 'SUMMARY';
   language?:   string;
   tag?:        string;
@@ -21,22 +23,17 @@ export class BooksService {
 
     const where: Prisma.BookWhereInput = {
       isPublished: true,
+      ...(query.search?.trim() && { AND: [{ OR: [
+        { title: { contains: query.search.trim(), mode: 'insensitive' as const } },
+        { authorName: { contains: query.search.trim(), mode: 'insensitive' as const } },
+      ] }] }),
       ...(type       && { contentType: type }),
       ...(language   && { language }),
       ...(tag && {
         tags: { some: { tag: { name: tag } } },
       }),
-      // A category filter matches the category itself, or (if it's a
-      // top-level category) any of its subcategories.
-      ...(categoryId && {
-        OR: [{ categoryId }, { category: { parentId: categoryId } }],
-      }),
-      ...(categorySlug && {
-        OR: [
-          { category: { slug: categorySlug } },
-          { category: { parent: { slug: categorySlug } } },
-        ],
-      }),
+      ...(categoryId && categoryFilter(categoryId, 'id')),
+      ...(categorySlug && categoryFilter(categorySlug, 'slug')),
       ...(authorId     && { authorId }),
     };
 
@@ -62,6 +59,7 @@ export class BooksService {
           price: true,
           publishedAt: true,
           category: { select: { id: true, name: true, slug: true, icon: true } },
+          categories: categorySelection,
           tags: { select: { tag: { select: { name: true } } } },
           _count: {
             select: { likes: true, comments: true },
@@ -161,38 +159,21 @@ export class BooksService {
    */
   static async listCategories() {
     const topLevel = await prisma.category.findMany({
-      where: { parentId: null },
-      orderBy: { name: 'asc' },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        icon: true,
-        children: {
-          orderBy: { name: 'asc' },
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            _count: { select: { books: { where: { isPublished: true } } } },
-          },
-        },
-        _count: { select: { books: { where: { isPublished: true } } } },
+      where: { parentId: null }, orderBy: { name: 'asc' },
+      select: { id: true, name: true, slug: true, icon: true,
+        children: { orderBy: { name: 'asc' }, select: { id: true, name: true, slug: true } },
       },
     });
-
-    return topLevel.map((c) => ({
-      id: c.id,
-      name: c.name,
-      slug: c.slug,
-      icon: c.icon,
-      bookCount: c._count.books + c.children.reduce((sum, ch) => sum + ch._count.books, 0),
-      subcategories: c.children.map((ch) => ({
-        id: ch.id,
-        name: ch.name,
-        slug: ch.slug,
-        bookCount: ch._count.books,
-      })),
+    return Promise.all(topLevel.map(async (category) => {
+      const children = await Promise.all(category.children.map(async (child) => ({
+        ...child,
+        bookCount: await prisma.book.count({ where: { isPublished: true, ...categoryFilter(child.id, 'id') } }),
+      })));
+      return {
+        ...category, children, subcategories: children,
+        // Count books once even when both parent and child categories are selected.
+        bookCount: await prisma.book.count({ where: { isPublished: true, ...categoryFilter(category.id, 'id') } }),
+      };
     }));
   }
 
@@ -212,6 +193,7 @@ export class BooksService {
           orderBy: { chapterIndex: 'asc' },
         },
         category: { select: { id: true, name: true, slug: true, icon: true } },
+        categories: categorySelection,
         author: { select: { id: true, displayName: true, avatarUrl: true } },
         tags: { include: { tag: true } },
         translations: {
@@ -287,6 +269,7 @@ export class BooksService {
   private static formatBook(book: any) {
     return {
       ...book,
+      categories: flattenCategories(book),
       tags: book.tags?.map((t: any) => t.tag?.name ?? t.name) ?? [],
       likeCount: book._count?.likes ?? 0,
       commentCount: book._count?.comments ?? 0,

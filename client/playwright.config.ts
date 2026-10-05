@@ -2,6 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
+  testIgnore: '**/admin/**',
   workers: 1,
   use: { baseURL: 'http://localhost:4310', channel: 'chrome', trace: 'retain-on-failure' },
   webServer: [

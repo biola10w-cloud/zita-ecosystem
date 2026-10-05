@@ -39,7 +39,7 @@ http.createServer(async (req, res) => {
   if (url.pathname.endsWith('/auth/logout')) return ok(null);
   if (url.pathname.endsWith('/auth/forgot-password')) return ok(null);
   if (url.pathname.endsWith('/auth/reset-password')) return body.token === 'reset-token' ? ok(null) : send(400, { success: false, error: { message: 'This reset link has expired.' } });
-  if (url.pathname === '/api/v1/books') return failCatalog ? send(503, { success: false }) : ok(empty ? [] : [book]);
+  if (url.pathname === '/api/v1/books') return failCatalog ? send(503, { success: false }) : ok(empty ? [] : [book].filter(item => [item.title, item.authorName].some(value => value.toLowerCase().includes((url.searchParams.get('search') || '').trim().toLowerCase()))));
   if (url.pathname === '/api/v1/books/featured') return ok(empty ? [] : [book]);
   if (url.pathname === '/api/v1/books/categories') return ok([{ id: 'category', name: 'Mindfulness', slug: 'mindfulness', bookCount: 1 }]);
   if (url.pathname === '/api/v1/books/test-book') return ok(book);

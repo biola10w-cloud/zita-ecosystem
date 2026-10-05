@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { BooksService } from './books.service';
 
 const listQuerySchema = z.object({
+  search: z.string().trim().max(200).optional(),
   type:         z.enum(['BOOK', 'STORY', 'SUMMARY']).optional(),
   language:     z.string().length(2).optional(),
   tag:          z.string().optional(),

@@ -3,6 +3,7 @@ import {
   PutObjectCommand,
   GetObjectCommand,
   DeleteObjectCommand,
+  ListObjectsV2Command,
 } from '@aws-sdk/client-s3';
 import { coverContentType } from './cover';
 import { config } from '../../config';
@@ -19,6 +20,29 @@ const s3 = new S3Client({
 });
 
 export class S3Service {
+  static async deleteBookAssets(bookId: string, slug: string): Promise<void> {
+    if (!/^[a-zA-Z0-9_-]+$/.test(bookId) || !/^[a-z0-9_-]+$/.test(slug)) {
+      throw new Error('Invalid book storage identifier');
+    }
+    for (const prefix of [`books/${bookId}/`, `temp/normalized/${slug}-`]) {
+      let continuationToken: string | undefined;
+      do {
+        const page = await s3.send(new ListObjectsV2Command({
+          Bucket: config.S3_BUCKET_NAME, Prefix: prefix, ContinuationToken: continuationToken,
+        }));
+        for (const object of page.Contents ?? []) {
+          if (!object.Key?.startsWith(prefix)) continue;
+          // A different book's slug can begin with this slug. Temporary source
+          // keys end in exactly a timestamp, not another slug segment.
+          if (prefix.startsWith('temp/') && !/^\d+\.txt$/.test(object.Key.slice(prefix.length))) continue;
+          await S3Service.deleteObject(object.Key);
+        }
+        continuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
+      } while (continuationToken);
+    }
+    await S3Service.deleteObject(`public/covers/${slug}`);
+  }
+
   /**
    * Stores normalized source text only while the encryption worker is pending.
    * This bucket key is never returned to a client and is deleted after the

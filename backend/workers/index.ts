@@ -15,6 +15,7 @@
 import '../src/shared/queue/workers/encryptionWorker';
 import '../src/shared/queue/workers/translationWorker';
 import '../src/shared/queue/workers/audioWorker';
+import '../src/shared/queue/workers/bookCleanupWorker';
 import '../src/shared/db/prisma';
 
 import { encryptionQueue, translationQueue, keyCleanupQueue, audioQueue } from '../src/shared/queue/queues';

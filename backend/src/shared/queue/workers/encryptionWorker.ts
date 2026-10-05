@@ -21,6 +21,8 @@ import { prisma } from '../../db/prisma';
  */
 encryptionQueue.process(async (job: Job<EncryptionJob>) => {
   const { bookId, rawS3Key, chapterCount } = job.data;
+  // Deleted books must not be recreated by queued jobs.
+  if (!await prisma.book.findUnique({ where: { id: bookId }, select: { id: true } })) return;
   job.log(`Starting encryption for book ${bookId}`);
 
   // 1. Download raw content
