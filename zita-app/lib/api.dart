@@ -126,6 +126,9 @@ class ZitaApi extends ChangeNotifier {
       return request(path,
           method: method, data: data, authenticated: true, retry: false);
     }
+    if (response.statusCode == 401 && authenticated) {
+      await clearSession();
+    }
     Map<String, dynamic> body;
     try {
       body = jsonDecode(response.body) as Map<String, dynamic>;

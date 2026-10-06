@@ -119,6 +119,13 @@ export class StripeService {
     return StripeService.client.subscriptions.cancel(stripeSubscriptionId);
   }
 
+  static async cancelForAccountDeletion(id: string) {
+    const subscription = await StripeService.client.subscriptions.retrieve(id);
+    if (!['canceled', 'incomplete_expired'].includes(subscription.status)) {
+      await StripeService.client.subscriptions.cancel(id, { invoice_now: false, prorate: false });
+    }
+  }
+
   // ─── Status mapping ─────────────────────────────────────────────
 
   static mapStatus(stripeStatus: Stripe.Subscription.Status): string {

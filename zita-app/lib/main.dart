@@ -30,7 +30,11 @@ class ZitaApp extends StatelessWidget {
         theme: ThemeData(
             useMaterial3: true,
             colorScheme:
-                ColorScheme.fromSeed(seedColor: const Color(0xff275b4d)),
+                ColorScheme.fromSeed(seedColor: const Color(0xff275b4d))
+                    .copyWith(
+              secondaryContainer: const Color(0xffdff2fc),
+              onSecondaryContainer: const Color(0xff174965),
+            ),
             scaffoldBackgroundColor: const Color(0xfffaf8f3)),
         home: LibraryScreen(api: api),
       );

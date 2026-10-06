@@ -29,6 +29,7 @@ export const CommunityController = {
 
     const result = await CommunityService.listComments({
       bookSlug: slug,
+      userId: request.user?.sub,
       ...query,
     });
 
@@ -89,7 +90,7 @@ export const CommunityController = {
   async getReplies(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
     const query = listQuerySchema.parse(request.query);
-    const result = await CommunityService.getReplies(id, query.page, query.limit);
+    const result = await CommunityService.getReplies(id, query.page, query.limit, request.user?.sub);
     return reply.send({ success: true, data: result.replies, meta: result.pagination });
   },
 };

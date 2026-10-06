@@ -60,6 +60,44 @@ from `client` for admin browser tests against fixture data.
 
 ## 4. Go-Live Checks
 
+### Mobile accounts and community blocking
+
+Before deploying the account update, apply `20261005160000_user_blocks` using
+`npm run db:migrate`. It adds only the UserBlock table and its indexes/constraints.
+Deploy the API before clients that use authenticated community feeds and block
+management. Blocking filters both directions for authenticated readers; signed-out
+community content remains public.
+
+`DELETE /api/v1/users/me` requires authentication, the current password, and
+`confirmation: "DELETE"`. Stripe cancellation completes before the local account
+is removed. If cancellation fails, the account remains; if database deletion fails
+after cancellation, billing may already be cancelled and deletion can be retried.
+Apple/Google subscriptions are not cancelled by this endpoint: the UI explicitly
+tells readers to cancel in their store. Payment-provider billing records are separate.
+Do not test this action on a real reader or administrator account.
+
+Account deletion removes owned uploads using the existing durable file cleanup
+queue and removes user analytics. Foreign keys cascade session/device/reset-token,
+reading, comment, like, purchase, report, block and local subscription records.
+Other readers' replies to a removed comment remain as standalone posts under the
+existing `Comment.parentId ON DELETE SET NULL` relation.
+
+Deploy the reader website to publish `/delete-account`, the external deletion
+path required for the Google Play listing. Verify it with a disposable staging
+account, including session invalidation on another device and cancellation failure.
+Unit/browser tests use mocks and do not replace this staging exercise.
+
+Native purchases remain disabled in mobile. Before enabling them, finish receipt
+ownership checks, verified Apple/Google notifications, purchase/restore UI, store
+product configuration, and sandbox transaction tests. Set the Google translation
+provider key on both API and worker before offering new machine translations.
+
+The Android GitHub artifact is a debug APK. For the Play submission, configure a
+confirmed application ID and upload signing key, remove debug release signing,
+and build an AAB. iOS needs confirmed bundle/team IDs, distribution signing,
+an active Apple Developer membership, and TestFlight/device checks. Finish
+owner-approved privacy, terms and support pages and store disclosures before submission.
+
 1. Confirm API health and worker logs are both clean after deployment.
 2. Publish one DOCX as an admin, then read it using a non-admin account.
 3. Confirm the original document has no public or client download URL.

@@ -8,6 +8,48 @@ import 'package:zita_app/screens.dart';
 import 'api_test.dart' show MemoryStore, ok;
 
 void main() {
+  testWidgets('revoked session clears the chapter when the app resumes',
+      (tester) async {
+    final store = MemoryStore();
+    store.values['zita_session'] =
+        jsonEncode({'accessToken': 'access', 'refreshToken': 'refresh'});
+    var revoked = false;
+    final api = ZitaApi(
+        baseUrl: 'https://api.example.com/api/v1',
+        store: store,
+        client: MockClient((request) async {
+          if (revoked) {
+            return http.Response(
+                '{"success":false,"error":{"message":"Session ended"}}', 401);
+          }
+          if (request.url.path.endsWith('/progress')) return ok(null);
+          if (request.url.path.endsWith('/content')) {
+            return ok({'content': 'Private chapter text'});
+          }
+          return ok({
+            'chapters': [
+              {'chapterIndex': 0, 'title': 'Beginning'}
+            ]
+          });
+        }));
+    await api.restore();
+    await tester.pumpWidget(MaterialApp(
+        home: ReaderScreen(
+            api: api, book: const {'slug': 'demo', 'title': 'Demo'})));
+    await tester.pumpAndSettle();
+    expect(find.text('Private chapter text'), findsOneWidget);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pumpAndSettle();
+    revoked = true;
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(api.signedIn, isFalse);
+    expect(find.text('Private chapter text'), findsNothing);
+    expect(find.text('Your session has ended. Go back and sign in again.'),
+        findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    api.dispose();
+  });
   for (final failSave in [false, true]) {
     testWidgets('back navigation saves position (failure=$failSave)',
         (tester) async {

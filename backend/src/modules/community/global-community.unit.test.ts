@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   book: { findFirst: vi.fn() },
   comment: { findMany: vi.fn(), count: vi.fn(), create: vi.fn(), findFirst: vi.fn() },
   checkText: vi.fn(),
+  userBlock: { findMany: vi.fn() },
 }));
 vi.mock('../../shared/db/prisma', () => ({ prisma: mocks }));
 vi.mock('../../shared/moderation/moderation.service', () => ({ ModerationService: { checkText: mocks.checkText } }));
@@ -12,6 +13,7 @@ import { CommunityController } from './community.controller';
 
 beforeEach(() => {
   vi.resetAllMocks(); mocks.checkText.mockResolvedValue({ flagged: false });
+  mocks.userBlock.findMany.mockResolvedValue([]);
   mocks.comment.create.mockImplementation(async ({ data }) => ({ ...data, id: 'new', user: { displayName: 'Reader' } }));
   mocks.comment.findMany.mockResolvedValue([]); mocks.comment.count.mockResolvedValue(0);
 });

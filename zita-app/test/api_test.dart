@@ -96,6 +96,30 @@ void main() {
     expect(api.signedIn, isFalse);
     expect(store.values.containsKey('zita_session'), isFalse);
   });
+  test('a rejected request after token refresh clears the session', () async {
+    final store = MemoryStore();
+    store.values['zita_session'] =
+        jsonEncode({'accessToken': 'old', 'refreshToken': 'refresh'});
+    var refreshes = 0;
+    final api = ZitaApi(
+        baseUrl: 'https://api.example.com/api/v1',
+        store: store,
+        client: MockClient((request) async {
+          if (request.url.path.endsWith('/refresh')) {
+            refreshes++;
+            return ok({'accessToken': 'new', 'refreshToken': 'rotated'});
+          }
+          return http.Response(
+              '{"success":false,"error":{"message":"Session ended"}}', 401);
+        }));
+    await api.restore();
+    await expectLater(api.request('users/me', authenticated: true),
+        throwsA(isA<ApiException>()));
+    expect(refreshes, 1);
+    expect(api.signedIn, isFalse);
+    expect(store.values.containsKey('zita_session'), isFalse);
+    api.dispose();
+  });
   test('sign out clears local tokens even when the server is unreachable',
       () async {
     final store = MemoryStore();

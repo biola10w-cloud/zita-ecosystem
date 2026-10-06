@@ -3,7 +3,7 @@ on:
   pull_request:
     paths: ['zita-app/**', '.github/workflows/mobile-checks.yml']
   push:
-    branches: [main]
+    branches: [main, codex/zita-mobile-release-prep]
     paths: ['zita-app/**', '.github/workflows/mobile-checks.yml']
   workflow_dispatch:
 
@@ -11,6 +11,33 @@ permissions:
   contents: read
 
 jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: zita-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install Flutter
+        run: |
+          git clone --depth 1 --branch 3.47.3 https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - run: flutter pub get --enforce-lockfile
+      - run: flutter analyze
+      - run: flutter test
+      - name: Compile Android testing APK
+        run: flutter build apk --debug --dart-define-from-file=config/production.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zita-android-debug
+          path: zita-app/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
   mobile:
     runs-on: macos-latest
     timeout-minutes: 30

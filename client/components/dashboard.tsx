@@ -66,6 +66,7 @@ export function Dashboard({ libraryOnly = false }: { libraryOnly?: boolean }) {
           : <div className="highlight-card"><p className="muted">Your saved highlights will appear here.</p></div>}
       </section>
       {!libraryOnly && <section className="account-panel" id="account"><h2>{account ? `Welcome, ${account.displayName || 'reader'}.` : 'Your account'}</h2>{account ? <><dl className="account-details"><div><dt>Name</dt><dd>{account.displayName}</dd></div><div><dt>Email</dt><dd>{account.email}</dd></div></dl><Link className="section-link" href="/forgot-password">Reset your password</Link></> : <p className="muted">{error ? 'Account details are unavailable.' : 'Loading your account…'}</p>}</section>}
+      {!libraryOnly && <p><Link href="/delete-account">Delete account</Link></p>}
     </main><AppNav active={libraryOnly ? 'library' : 'profile'} />
   </div>;
 }

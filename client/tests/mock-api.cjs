@@ -64,6 +64,10 @@ http.createServer(async (req, res) => {
   if (!req.headers.authorization) return send(401, { success: false, error: { message: 'Missing authorization header' } });
   if (url.pathname === '/api/v1/users/me') {
     if (req.headers.authorization !== 'Bearer access') return send(401, { success: false });
+    if (req.method === 'DELETE') {
+      if (body.password !== 'TestPassword123!' || body.confirmation !== 'DELETE') return send(400, { success: false, error: { message: 'Your current password is incorrect.' } });
+      return ok(null);
+    }
     return ok({ displayName: 'Test Reader', email: 'reader@example.test' });
   }
   if (url.pathname === '/api/v1/analytics/me') {
