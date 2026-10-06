@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { adminRequest } from '../../../../lib/browser-api';
 
 import { CategoryPicker, type CategoryOption } from '../category-picker';
 
@@ -59,7 +60,7 @@ export function UploadForm({ categories, book }: { categories: CategoryOption[];
     if (!book) { formData.append('content', contentFile); formData.append('cover', coverFile); }
 
     try {
-      const res = await fetch(book ? `/api/books/${encodeURIComponent(book.id)}` : '/api/books', book
+      const res = await adminRequest(book ? `/api/books/${encodeURIComponent(book.id)}` : '/api/books', book
         ? { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(metadata) }
         : { method: 'POST', body: formData });
       const body = await res.json();
@@ -73,8 +74,8 @@ export function UploadForm({ categories, book }: { categories: CategoryOption[];
       setSuccess('Uploaded! Encryption is running in the background — check the Books list in a moment.');
       form.reset();
       router.refresh();
-    } catch {
-      setError('Could not reach the server. Please retry.');
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Could not reach the server. Please retry.');
     } finally {
       setLoading(false);
     }

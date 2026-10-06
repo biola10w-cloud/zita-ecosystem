@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { adminRequest } from '../../../lib/browser-api';
 
 export function DeleteButton({ bookId, title }: { bookId: string; title: string }) {
   const router = useRouter();
@@ -11,7 +12,7 @@ export function DeleteButton({ bookId, title }: { bookId: string; title: string 
     if (!window.confirm(`Permanently delete “${title}”? This removes the book, its chapters, comments, purchases, and saved reading progress. This cannot be undone.`)) return;
     setBusy(true); setError('');
     try {
-      const response = await fetch(`/api/books/${encodeURIComponent(bookId)}`, { method: 'DELETE' });
+      const response = await adminRequest(`/api/books/${encodeURIComponent(bookId)}`, { method: 'DELETE' });
       const body = await response.json();
       if (!response.ok || !body.success) throw new Error(body.error?.message || 'Could not delete this book.');
       router.refresh();

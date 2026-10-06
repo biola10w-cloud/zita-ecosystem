@@ -52,3 +52,26 @@ test('upload supports multiple category selections and edits can remove all cate
   await expect(page).toHaveURL('/books');
   expect((await (await request.get('http://127.0.0.1:4321/__state')).json()).data.edits[0].categoryIds).toEqual([]);
 });
+
+test('expired access cookie refreshes before saving and deleting from an open page', async ({ page, context }) => {
+  await context.addCookies([{ name: 'zita_admin_refresh', value: 'refresh', domain: 'localhost', path: '/' }]);
+  await page.goto('/books/book/edit');
+  await page.getByLabel('Title', { exact: true }).fill('Saved after expiry');
+  await context.clearCookies({ name: 'zita_admin_session' });
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await expect(page).toHaveURL('/books');
+  await expect(page.getByRole('row').filter({ hasText: 'Saved after expiry' })).toBeVisible();
+  await context.clearCookies({ name: 'zita_admin_session' });
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'Delete Saved after expiry' }).click();
+  await expect(page.getByText('0 book(s)')).toBeVisible();
+});
+
+test('revoked session reports sign-in requirement and preserves the edit draft', async ({ page, context }) => {
+  await page.goto('/books/book/edit');
+  await page.getByLabel('Title', { exact: true }).fill('Unsaved draft');
+  await context.clearCookies();
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await expect(page.getByText('Your session has expired. Please sign in again before saving changes.')).toBeVisible();
+  await expect(page.getByLabel('Title', { exact: true })).toHaveValue('Unsaved draft');
+});

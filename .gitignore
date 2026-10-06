@@ -16,3 +16,4 @@ test-results/
 backend/keys/
 *.pem
 *.key
+files.zip

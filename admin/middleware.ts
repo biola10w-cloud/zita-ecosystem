@@ -11,6 +11,9 @@ export function middleware(request: NextRequest) {
   const isAuthApi = request.nextUrl.pathname.startsWith('/api/auth');
 
   if (!hasSession && !isLoginPage && !isAuthApi) {
+    if (request.nextUrl.pathname.startsWith('/api/')) {
+      return NextResponse.json({ success: false, error: { code: 'NO_SESSION', message: 'Please sign in again.' } }, { status: 401 });
+    }
     const loginUrl = new URL('/login', request.url);
     return NextResponse.redirect(loginUrl);
   }

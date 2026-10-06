@@ -12,6 +12,10 @@ http.createServer(async (req, res) => {
   if (url.pathname === '/__reset') { book = structuredClone(original); edits = []; deletes = 0; fail = false; return send(200, null); }
   if (url.pathname === '/__state') return send(200, { book, edits, deletes });
   if (url.pathname === '/__failure') { fail = JSON.parse(raw).fail; return send(200, null); }
+  if (url.pathname === '/api/v1/auth/refresh') {
+    if (JSON.parse(raw).refreshToken !== 'refresh') return send(401, null, false);
+    return send(200, { accessToken: 'access', refreshToken: 'refresh' });
+  }
   if (req.headers.authorization !== 'Bearer access') return send(401, null, false);
   if (url.pathname === '/api/v1/admin/categories') return send(200, categories);
   if (url.pathname === '/api/v1/admin/books') return send(200, book ? [book] : []);
