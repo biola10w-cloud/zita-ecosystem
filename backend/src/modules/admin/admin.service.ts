@@ -3,6 +3,7 @@ import { S3Service } from '../../shared/storage/s3';
 import { coverContentType } from '../../shared/storage/cover';
 import { encryptionQueue, translationQueue } from '../../shared/queue/queues';
 import { nanoid } from 'nanoid';
+import { categoryFilter, categorySelection, flattenCategories } from '../books/book-categories';
 
 export interface CreateBookInput {
   title:            string;
@@ -15,9 +16,60 @@ export interface CreateBookInput {
   price?:           number;
   tags:             string[];
   categoryId?:      string;
+  categoryIds?:     string[];
 }
 
 export class AdminService {
+  private static async validateCategories(categoryIds: string[]) {
+    const count = await prisma.category.count({ where: { id: { in: categoryIds } } });
+    if (count !== categoryIds.length) {
+      throw Object.assign(new Error('One or more selected categories no longer exist.'), { statusCode: 400 });
+    }
+  }
+
+  static async getBook(bookId: string) {
+    const book = await prisma.book.findUniqueOrThrow({
+      where: { id: bookId },
+      select: {
+        id: true, slug: true, title: true, authorName: true, description: true,
+        contentType: true, language: true, estimatedMinutes: true, isPremium: true,
+        price: true, isPublished: true, coverUrl: true,
+        category: { select: { id: true, name: true, slug: true } },
+        categories: categorySelection,
+        tags: { select: { tag: { select: { name: true } } } },
+      },
+    });
+    return { ...book, categories: flattenCategories(book), tags: book.tags.map(({ tag }) => tag.name) };
+  }
+
+  static async updateBook(bookId: string, input: Omit<CreateBookInput, 'categoryId' | 'price'> & { categoryIds: string[]; price?: number | null }) {
+    const categoryIds = [...new Set(input.categoryIds)];
+    await AdminService.validateCategories(categoryIds);
+    const tags = [...new Set(input.tags.map((tag) => tag.trim().toLowerCase()).filter(Boolean))];
+    await prisma.book.update({
+      where: { id: bookId },
+      data: {
+        title: input.title, authorName: input.authorName, description: input.description,
+        contentType: input.contentType, language: input.language,
+        estimatedMinutes: input.estimatedMinutes, isPremium: input.isPremium, price: input.price ?? null,
+        categoryId: categoryIds[0] ?? null,
+        categories: { deleteMany: {}, create: categoryIds.map((categoryId) => ({ categoryId })) },
+        tags: { deleteMany: {}, create: tags.map((name) => ({ tag: { connectOrCreate: { where: { name }, create: { name } } } })) },
+      },
+    });
+    return AdminService.getBook(bookId);
+  }
+
+  static async deleteBook(bookId: string) {
+    await prisma.$transaction(async (tx) => {
+      const book = await tx.book.findUniqueOrThrow({ where: { id: bookId }, select: { id: true, slug: true } });
+      await tx.deletedBook.create({ data: book });
+      // Dependent chapters, categories, purchases, progress and comments cascade.
+      // Analytics events remain, with their book reference cleared by the FK.
+      await tx.book.delete({ where: { id: bookId } });
+    });
+  }
+
   // â”€â”€â”€ Create book + trigger encryption pipeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   static async createBook(
@@ -72,6 +124,9 @@ export class AdminService {
     const uniqueSuffix = nanoid(6).toLowerCase();
     const slug = `${baseSlug}-${uniqueSuffix}`;
 
+    const categoryIds = [...new Set(input.categoryIds ?? (input.categoryId ? [input.categoryId] : []))];
+    await AdminService.validateCategories(categoryIds);
+
     // 1. Upload normalized source text to a private temporary S3 location.
     //    The source DOCX has already been discarded by the route handler and
     //    this object is deleted by the encryption worker after processing.
@@ -97,11 +152,6 @@ export class AdminService {
       ),
     );
 
-    // 4. Validate category, if provided
-    if (input.categoryId) {
-      await prisma.category.findUniqueOrThrow({ where: { id: input.categoryId } });
-    }
-
     // 5. Create book record (not yet published â€” awaiting encryption)
     const book = await prisma.book.create({
       data: {
@@ -117,7 +167,8 @@ export class AdminService {
         estimatedMinutes: input.estimatedMinutes,
         isPremium:        input.isPremium,
         price:            input.price ?? null,
-        categoryId:       input.categoryId ?? null,
+        categoryId:       categoryIds[0] ?? null,
+        categories: { create: categoryIds.map((categoryId) => ({ categoryId })) },
         isPublished:      false,          // Published after encryption
         encryptedFileKey: 'pending',      // Set by encryption worker
         fileIv:           'pending',
@@ -150,7 +201,7 @@ export class AdminService {
     const skip = (page - 1) * limit;
 
     const where = search
-      ? { title: { contains: search, mode: 'insensitive' as const } }
+      ? { OR: [{ title: { contains: search, mode: 'insensitive' as const } }, { authorName: { contains: search, mode: 'insensitive' as const } }] }
       : {};
 
     const [books, total] = await Promise.all([
@@ -173,6 +224,7 @@ export class AdminService {
           encryptedFileKey: true,
           createdAt: true,
           category: { select: { id: true, name: true } },
+          categories: categorySelection,
         },
       }),
       prisma.book.count({ where }),
@@ -181,6 +233,7 @@ export class AdminService {
     return {
       books: books.map((b) => ({
         ...b,
+        categories: flattenCategories(b),
         encryptionStatus: b.encryptedFileKey === 'pending' ? 'PENDING' : 'READY',
         encryptedFileKey: undefined,
       })),
@@ -247,17 +300,17 @@ export class AdminService {
 
   /** Nested tree (top-level categories + subcategories) for the admin upload form. */
   static async listCategories() {
-    return prisma.category.findMany({
-      where: { parentId: null },
-      orderBy: { name: 'asc' },
-      include: {
-        children: {
-          orderBy: { name: 'asc' },
-          include: { _count: { select: { books: true } } },
-        },
-        _count: { select: { books: true } },
-      },
+    const categories = await prisma.category.findMany({
+      where: { parentId: null }, orderBy: { name: 'asc' },
+      include: { children: { orderBy: { name: 'asc' } } },
     });
+    return Promise.all(categories.map(async (category) => ({
+      ...category,
+      _count: { books: await prisma.book.count({ where: categoryFilter(category.id, 'id', false) }) },
+      children: await Promise.all(category.children.map(async (child) => ({
+        ...child, _count: { books: await prisma.book.count({ where: categoryFilter(child.id, 'id', false) }) },
+      }))),
+    })));
   }
 
   static async createCategory(name: string, icon?: string, parentId?: string) {

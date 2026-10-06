@@ -3,18 +3,18 @@ import { z } from 'zod';
 import { CommunityService } from './community.service';
 
 const listQuerySchema = z.object({
-  page:  z.string().default('1').transform(Number),
-  limit: z.string().default('20').transform(Number),
+  page:  z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
   sort:  z.enum(['recent', 'popular']).default('recent'),
 });
 
 const createCommentSchema = z.object({
-  body:     z.string().min(1).max(2000).trim(),
-  parentId: z.string().cuid().optional(),
+  body:     z.string().trim().min(1).max(2000),
+  parentId: z.union([z.string().uuid(), z.string().cuid()]).optional(),
 });
 
 const updateCommentSchema = z.object({
-  body: z.string().min(1).max(2000).trim(),
+  body: z.string().trim().min(1).max(2000),
 });
 
 const reportSchema = z.object({
@@ -29,6 +29,7 @@ export const CommunityController = {
 
     const result = await CommunityService.listComments({
       bookSlug: slug,
+      userId: request.user?.sub,
       ...query,
     });
 
@@ -89,7 +90,7 @@ export const CommunityController = {
   async getReplies(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
     const query = listQuerySchema.parse(request.query);
-    const result = await CommunityService.getReplies(id, query.page, query.limit);
+    const result = await CommunityService.getReplies(id, query.page, query.limit, request.user?.sub);
     return reply.send({ success: true, data: result.replies, meta: result.pagination });
   },
 };

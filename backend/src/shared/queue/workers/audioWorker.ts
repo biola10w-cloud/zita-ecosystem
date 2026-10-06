@@ -22,6 +22,8 @@ import { prisma } from '../../db/prisma';
  */
 audioQueue.process(async (job: Job<AudioJob>) => {
   const { bookId, chapterIndex, language, audioTrackId } = job.data;
+  // Deleted books must not be recreated by queued jobs.
+  if (!await prisma.book.findUnique({ where: { id: bookId }, select: { id: true } })) return;
   job.log(`Synthesizing audio for book ${bookId} chapter ${chapterIndex} (${language})`);
 
   const audioTrack = await prisma.audioTrack.findUniqueOrThrow({

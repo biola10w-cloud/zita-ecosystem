@@ -17,6 +17,13 @@ const highlightSchema = z.object({
 });
 
 export const ReaderController = {
+  async requestTranslation(request: FastifyRequest, reply: FastifyReply) {
+    const { slug } = request.params as { slug: string };
+    const { language } = z.object({ language: z.enum(['en', 'fr', 'es', 'de', 'pt', 'it', 'ar', 'hi', 'zh', 'ja', 'ko', 'nl', 'pl', 'tr', 'sv', 'sw', 'yo', 'ig', 'ha']) }).parse(request.body);
+    const result = await ReaderService.requestTranslation(request.user!.sub, slug, language);
+    reply.header('Cache-Control', 'no-store, private');
+    return reply.send({ success: true, data: result });
+  },
   async getChapterContent(request: FastifyRequest, reply: FastifyReply) {
     const { slug, index } = request.params as { slug: string; index: string };
     const { language } = request.query as { language?: string };

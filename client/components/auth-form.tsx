@@ -1,14 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, BookOpen } from 'lucide-react';
+import { Brand } from './app-nav';
 import { FormEvent, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { safeReturnPath } from '../lib/navigation';
 
 export function AuthForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get('next') || '/';
+  const next = safeReturnPath(searchParams.get('next') || '/dashboard');
   const [mode, setMode] = useState<'signin' | 'register'>('signin');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -39,21 +40,21 @@ export function AuthForm() {
 
   return (
     <main className="auth-page">
-      <Link href="/" className="brand"><BookOpen size={21} /> Zita</Link>
+      <Brand />
       <section className="auth-panel">
-        <p className="eyebrow">Your reading space</p>
-        <h1>{mode === 'signin' ? 'Welcome back.' : 'Start your library.'}</h1>
-        <p className="auth-copy">{mode === 'signin' ? 'Sign in to continue reading and keep your progress in sync.' : 'Create an account to save your reading progress across sessions.'}</p>
+        <h1>{mode === 'signin' ? 'Welcome back' : 'Create your account'}</h1>
+        <p className="auth-copy">{mode === 'signin' ? 'Sign in to continue reading' : 'Start your reading journey with Zita'}</p>
         <div className="mode-switch" role="tablist" aria-label="Account action">
           <button role="tab" aria-selected={mode === 'signin'} className={mode === 'signin' ? 'selected' : ''} onClick={() => setMode('signin')}>Sign in</button>
           <button role="tab" aria-selected={mode === 'register'} className={mode === 'register' ? 'selected' : ''} onClick={() => setMode('register')}>Create account</button>
         </div>
         <form onSubmit={submit} className="auth-form">
           {mode === 'register' && <label>Display name<input name="displayName" minLength={2} maxLength={50} required autoComplete="name" /></label>}
-          <label>Email<input name="email" type="email" required autoComplete="email" /></label>
-          <label>Password<input name="password" type="password" minLength={8} required autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} /></label>
+          <label><span className="sr-only">Email</span><input name="email" type="email" placeholder="Email address" required autoComplete="email" /></label>
+          <label><span className="sr-only">Password</span><input name="password" type="password" placeholder="Password" minLength={8} required autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} /></label>
           {error && <p className="form-error" role="alert">{error}</p>}
-          <button className="button button-dark full" disabled={loading}>{loading ? 'Working...' : mode === 'signin' ? 'Sign in' : 'Create account'} <ArrowRight size={17} /></button>
+          {mode === 'signin' && <Link className="forgot-link" href="/forgot-password">Forgot your password?</Link>}
+          <button className="button button-dark full" disabled={loading}>{loading ? 'Working...' : mode === 'signin' ? 'Sign in' : 'Create account'}</button>
         </form>
       </section>
     </main>
