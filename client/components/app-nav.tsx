@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Home, Compass, Library, UserRound, MessageCircle } from 'lucide-react';
 
 export function Brand({ href = '/' }: { href?: string }) {
-  return <Link href={href} className="brand" aria-label="Zita home"><span className="brand-mark">Z</span><span>ZITA</span></Link>;
+  return <Link href={href} className="brand" aria-label="ZITA THE APP home"><span className="brand-mark">Z</span><span>ZITA THE APP</span></Link>;
 }
 
 export function AppNav({ active }: { active: 'home' | 'explore' | 'library' | 'profile' | 'community' }) {

@@ -25,7 +25,7 @@ class ZitaApp extends StatelessWidget {
   final ZitaApi api;
   @override
   Widget build(BuildContext context) => MaterialApp(
-        title: 'Zita',
+        title: 'ZITA THE APP',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
             useMaterial3: true,
