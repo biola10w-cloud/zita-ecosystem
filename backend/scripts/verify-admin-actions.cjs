@@ -13,7 +13,7 @@ process.stdin.on('end', async () => {
   const email = `zita-actions-${suffix}@example.invalid`;
   const password = crypto.randomBytes(32).toString('base64url');
   const origin = 'https://zita-admin-production.up.railway.app';
-  let user, book;
+  let user, book, browser;
   const request = (path, options = {}) => fetch(origin + path, { ...options, signal: AbortSignal.timeout(30000) });
   try {
     const before = await db.book.count({ where: { isPublished: true } });
@@ -22,6 +22,33 @@ process.stdin.on('end', async () => {
     const login = await request('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
     assert.equal(login.status, 200, 'Temporary administrator login');
     const cookie = login.headers.getSetCookie().map(value => value.split(';')[0]).join('; ');
+    if (process.argv.includes('--browser')) {
+      const { chromium, expect } = require('../../client/node_modules/@playwright/test');
+      browser = await chromium.launch({ channel: 'chrome' });
+      const context = await browser.newContext();
+      await context.addCookies(cookie.split('; ').map(item => {
+        const split = item.indexOf('=');
+        return { name: item.slice(0, split), value: item.slice(split + 1), url: origin, httpOnly: true, secure: true, sameSite: 'Lax' };
+      }));
+      const page = await context.newPage();
+      await page.goto(`${origin}/books/${book.id}/edit`);
+      const editedTitle = `Updated temporary action check ${suffix}`;
+      await page.getByLabel('Title', { exact: true }).fill(editedTitle);
+      await context.clearCookies({ name: 'zita_admin_session' });
+      await page.getByRole('button', { name: 'Save changes' }).click();
+      await expect(page).toHaveURL(`${origin}/books`, { timeout: 30000 });
+      assert.equal((await db.book.findUniqueOrThrow({ where: { id: book.id } })).title, editedTitle);
+      console.log('Live browser edit after cookie expiry passed.');
+      await page.goto(`${origin}/books?search=${encodeURIComponent(editedTitle)}`);
+      await context.clearCookies({ name: 'zita_admin_session' });
+      page.once('dialog', dialog => dialog.accept());
+      await page.getByRole('button', { name: `Delete ${editedTitle}`, exact: true }).click();
+      await expect(page.getByText('0 book(s)')).toBeVisible({ timeout: 30000 });
+      assert.equal(await db.book.count({ where: { id: book.id } }), 0);
+      assert.equal(await db.book.count({ where: { isPublished: true } }), before);
+      console.log('Live browser delete after cookie expiry passed; published book count preserved.');
+      return;
+    }
     const page = await request(`/books/${book.id}/edit`, { headers: { Cookie: cookie } });
     const html = await page.text();
     console.log(JSON.stringify({ check: 'Edit page', status: page.status, form: html.includes('Save changes'), loadError: html.includes('Unable to load this book') }));
@@ -39,6 +66,7 @@ process.stdin.on('end', async () => {
     console.error(JSON.stringify({ check: 'Admin actions', error: error.name, message: error instanceof assert.AssertionError ? error.message : 'Verification failed' }));
     process.exitCode = 1;
   } finally {
+    if (browser) await browser.close();
     if (book) {
       await db.book.deleteMany({ where: { id: book.id, slug: `zita-actions-${suffix}`, isPublished: false } });
       await db.deletedBook.deleteMany({ where: { id: book.id, slug: `zita-actions-${suffix}` } });

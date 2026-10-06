@@ -1,5 +1,19 @@
 # Production Release Runbook
 
+## October 6, 2026 deployment verification
+
+- Applied `20261005160000_user_blocks` to production using Prisma migrate deploy.
+- Published the reader website, including `/delete-account`, to
+  https://client-three-ruddy.vercel.app. Home, community, and deletion pages returned HTTP 200.
+- Deployed API account/blocking changes and the admin expired-session recovery fix.
+- Five admin browser tests passed against fixtures. Live Chrome verification also
+  saved and deleted a disposable unpublished book after removing the test admin's
+  access cookie before each action. Automatic session refresh succeeded in both cases.
+  The published book count was preserved and the temporary account/book were removed.
+- `backend/scripts/verify-admin-actions.cjs --browser` reproduces this controlled
+  check with database configuration supplied on stdin. It never targets existing books.
+- These web/backend deployments do not publish the native app to either store.
+
 Use separate production services for the backend API, backend worker, reader,
 and admin app. Keep all secret values in the provider dashboards, never in Git.
 
