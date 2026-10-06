@@ -106,9 +106,11 @@ ownership checks, verified Apple/Google notifications, purchase/restore UI, stor
 product configuration, and sandbox transaction tests. Set the Google translation
 provider key on both API and worker before offering new machine translations.
 
-The Android GitHub artifact is a debug APK. For the Play submission, configure a
-confirmed application ID and upload signing key, remove debug release signing,
-and build an AAB. iOS needs confirmed bundle/team IDs, distribution signing,
+The Mobile checks Android artifact is a debug APK. The separate Android release
+candidate workflow builds an unsigned AAB for local upload-key signing; follow
+`zita-app/ANDROID_RELEASE.md`. The private key and password stay on the owner's
+Windows computer. Only the locally signed AAB is suitable for a Play testing upload.
+iOS needs confirmed bundle/team IDs, distribution signing,
 an active Apple Developer membership, and TestFlight/device checks. Finish
 owner-approved privacy, terms and support pages and store disclosures before submission.
 

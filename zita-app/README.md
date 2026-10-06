@@ -122,17 +122,18 @@ Community user blocking is stored on the account. Authenticated feeds and replie
 exclude both sides of a block; blocked authors cannot receive replies from the
 blocked reader. Blocking and unblocking are accessible in Community and My reading.
 Public, signed-out discussions remain public. These backend changes require
-`20261005160000_user_blocks` before deployment. The website includes a
-`/delete-account` page for deletion outside the installed app; it is not live
-until the reader website and API release are deployed.
+`20261005160000_user_blocks` before deployment. This migration and the API/worker
+update are deployed. The website's `/delete-account` page is live for deletion
+outside the installed app; public `/privacy` and `/support` pages are also live.
 
 New App Store/Google Play purchases and restore are still unimplemented in mobile.
 The app currently consumes existing account entitlements only. Native receipt
 ownership validation and authenticated store notifications must be finished and
 tested before enabling purchases. Store release also
-needs approved privacy/terms/support pages, final icons and identifiers, signing,
-and physical Android/iOS testing. The Android release configuration still uses
-the generated debug signing configuration and must not be submitted as-is.
+needs terms, native privacy/support links, final icons, iOS identifiers/signing,
+and physical Android/iOS testing. Android release builds now require an upload
+key and never use debug signing. See [Android release instructions](ANDROID_RELEASE.md)
+for unsigned CI compilation followed by private local signing.
 
 GitHub Mobile checks now builds an Android debug APK artifact and continues the
 iOS simulator/unsigned release compilation checks. The debug APK is for development
