@@ -189,3 +189,13 @@ The phone preview is generated from real Flutter widgets by the homepage test,
 with optional `ZITA_PREVIEW_DIR` on Windows. It is not a substitute for testing the
 updated bundle on a physical Android phone. Version code 2 must replace code 1 in
 the existing Play internal testing track; no new app listing or upload key is needed.
+
+### Career discovery homepage (1.0.2+3)
+
+The public homepage uses the blue/white palette, responsive illustrated hero,
+featured and compact catalogue cards with real descriptions/categories, and
+session-only recent searches. Motion respects the device reduced-animation setting.
+Book details and shared community actions are functional. Illustrative readership
+counts, ratings, avatars and editor endorsements are not published as real data.
+Dedicated 60-second audio previews, saved-book lists and live discussion previews
+remain separate feature work; the existing reader supports device voice playback.

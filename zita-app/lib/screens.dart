@@ -46,11 +46,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
   final introKey = GlobalKey();
   final listScroll = ScrollController();
   final search = TextEditingController();
+  final searchFocus = FocusNode();
+  final recentSearches = <String>[];
   Timer? searchTimer;
   int generation = 0;
   @override
   void initState() {
     super.initState();
+    searchFocus.addListener(changed);
     load();
     loadCategories();
     widget.api.addListener(changed);
@@ -63,6 +66,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
   @override
   void dispose() {
     searchTimer?.cancel();
+    searchFocus.removeListener(changed);
+    searchFocus.dispose();
     search.dispose();
     listScroll.dispose();
     widget.api.removeListener(changed);
@@ -111,7 +116,18 @@ class _LibraryScreenState extends State<LibraryScreen> {
     }
   }
 
+  void rememberSearch() {
+    final value = query.trim();
+    if (value.isEmpty) return;
+    setState(() {
+      recentSearches.remove(value);
+      recentSearches.insert(0, value);
+      if (recentSearches.length > 5) recentSearches.removeLast();
+    });
+  }
+
   Future<void> openBook(Map<String, dynamic> book) async {
+    rememberSearch();
     await Navigator.of(context).push(MaterialPageRoute(
         builder: (_) => BookDetailsScreen(api: widget.api, book: book)));
   }
@@ -243,6 +259,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   const SizedBox(height: 14),
                   TextField(
                       controller: search,
+                      focusNode: searchFocus,
+                      onSubmitted: (_) {
+                        rememberSearch();
+                        searchFocus.unfocus();
+                      },
                       onChanged: searchChanged,
                       maxLength: 200,
                       decoration: InputDecoration(
@@ -260,6 +281,28 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                   icon: const Icon(Icons.clear)),
                           border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(16)))),
+                  if (searchFocus.hasFocus && recentSearches.isNotEmpty)
+                    Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Recent searches'),
+                              Wrap(
+                                  spacing: 8,
+                                  children: recentSearches
+                                      .map((term) => ActionChip(
+                                            avatar: const Icon(Icons.history,
+                                                size: 18),
+                                            label: Text(term),
+                                            onPressed: () {
+                                              search.text = term;
+                                              searchChanged(term);
+                                              searchFocus.unfocus();
+                                            },
+                                          ))
+                                      .toList()),
+                            ])),
                   const SizedBox(height: 12),
                   Wrap(
                       spacing: 8,
@@ -317,7 +360,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       style: TextStyle(fontSize: 12, height: 1.5)),
                   const SizedBox(height: 16),
                   for (final book in books)
-                    DiscoveryBookCard(book: book, onTap: () => openBook(book)),
+                    DiscoveryBookCard(
+                        book: book,
+                        featured: identical(book, books.first) &&
+                            query.isEmpty &&
+                            category == null,
+                        onTap: () => openBook(book),
+                        onDiscuss: openCommunity),
                   if (!loading && error == null && books.isEmpty)
                     Padding(
                         padding: const EdgeInsets.all(24),

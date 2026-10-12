@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:zita_app/api.dart';
 import 'package:zita_app/main.dart';
+import 'package:zita_app/discovery_widgets.dart';
 import 'package:zita_app/screens.dart';
 import 'api_test.dart' show MemoryStore, ok;
 
@@ -35,6 +36,44 @@ Finder get libraryScroll => find
     .first;
 
 void main() {
+  testWidgets('hero and featured card fit narrow large-text and wide layouts',
+      (tester) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    tester.view.devicePixelRatio = 1;
+    for (final width in [320.0, 1100.0]) {
+      tester.view.physicalSize = Size(width, 900);
+      await tester.pumpWidget(MaterialApp(
+          home: MediaQuery(
+        data: MediaQueryData(
+            size: Size(width, 900), textScaler: const TextScaler.linear(1.5)),
+        child: Scaffold(
+            body: SingleChildScrollView(
+                child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(children: [
+            DiscoveryIntro(
+                signedIn: false,
+                onRegister: () {},
+                onExplore: () {},
+                onCommunity: () {}),
+            DiscoveryBookCard(book: {
+              ...title('A longer career-changing book title'),
+              'description': 'Practical steps for your next chapter.',
+              'categories': [
+                {'name': 'Career Growth'}
+              ]
+            }, featured: true, onTap: () {}, onDiscuss: () {}),
+          ]),
+        ))),
+      )));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.textContaining('12,400'), findsNothing);
+      expect(find.textContaining('4.6'), findsNothing);
+    }
+  });
+
   testWidgets(
       'public homepage explains features and opens registration directly on a phone',
       (tester) async {
@@ -66,7 +105,8 @@ void main() {
     await tester
         .pumpWidget(RepaintBoundary(key: screenshot, child: ZitaApp(api: api)));
     await tester.pumpAndSettle();
-    expect(find.text('Read. Listen.\nGrow together.'), findsOneWidget);
+    expect(
+        find.text('Find career-changing reads in 30 minutes'), findsOneWidget);
     expect(tester.takeException(), isNull);
     if (preview != null) {
       await tester.runAsync(() async {

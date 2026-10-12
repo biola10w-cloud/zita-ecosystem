@@ -18,7 +18,7 @@ class ZitaWordmark extends StatelessWidget {
                 fontSize: 32,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -1.5,
-                color: Color(0xff214e42))),
+                color: Color(0xff0b6efd))),
       ])));
 }
 
@@ -31,7 +31,7 @@ class _MarkPainter extends CustomPainter {
             const Rect.fromLTWH(1, 1, 38, 38), const Radius.circular(13)),
         Paint()..color = const Color(0xffdff2fc));
     final ink = Paint()
-      ..color = const Color(0xff275b4d)
+      ..color = const Color(0xff0b6efd)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4
       ..strokeCap = StrokeCap.round
@@ -90,7 +90,7 @@ class _ReadingPainter extends CustomPainter {
       ..strokeWidth = width
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
-    const green = Color(0xff275b4d),
+    const green = Color(0xff0b6efd),
         blue = Color(0xff77bddb),
         cream = Color(0xfffffcf2);
     canvas.drawOval(
