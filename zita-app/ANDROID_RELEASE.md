@@ -1,8 +1,25 @@
 # Android testing build
 
 Application ID: `com.zita.zita_app` (retain for future updates).
-Display name: **ZITA THE APP**. Current version: `1.0.0+1`.
-The owner confirmed no APK or AAB has previously been uploaded to Google Play.
+Display name: **ZITA**. Current version: `1.0.1+2`.
+The first build has been uploaded to Google Play internal testing by the owner.
+
+## Homepage update testing bundle
+
+- Build source: `70e17a9f9d2bf626d0631699668c8e5032d0bae4`.
+- [Successful workflow run](https://github.com/biola10w-cloud/zita-ecosystem/actions/runs/38276834727):
+  analysis, all 34 tests and Android release compilation passed.
+- Includes the illustrated public homepage, custom Zita wordmark, feature
+  introductions, and category/subcategory browsing before registration.
+- Locally signed file: `release-artifacts/android/1.0.1-2/ZITA-THE-APP-1.0.1-2.aab`
+  at the repository root (49.25 MiB, excluded from source control).
+- SHA-256: `0fd6289e6920669cadea4e2f6b6a8bc1eedba45d1d58dada0014f8b88534faf1`.
+- Strict signature verification and bundletool validation passed. Manifest checks
+  confirmed the existing package, version code 2, version name 1.0.1, display name
+  ZITA and a non-debuggable release. The original upload certificate is retained.
+  The bundled font license was verified in the AAB.
+- This update has not been uploaded to Google Play or tested on a physical device
+  by us. Upload it as a new release in the existing app's internal testing track.
 
 ## First verified testing bundle
 
@@ -18,7 +35,8 @@ The owner confirmed no APK or AAB has previously been uploaded to Google Play.
   and a non-debuggable release. This has not been installed on a physical device.
 - Upload certificate SHA-256:
   `8D:25:C6:67:C1:57:71:08:C7:B4:C3:76:E1:83:E1:C7:BD:25:ED:57:62:4C:23:73:7B:99:18:D3:E1:DC:7F:CE`.
-- The bundle has **not** been uploaded to Google Play. In Play Console, select
+- At preparation time, this bundle had not been uploaded to Google Play. The owner
+  subsequently uploaded it for internal testing. In Play Console, select
   ZITA THE APP, then **Test and release → Testing → Internal testing → Create new
   release**. Configure Play App Signing and upload the signed `.aab` above. Add
   your test accounts and follow the console's review/rollout instructions.
@@ -31,10 +49,11 @@ The owner confirmed no APK or AAB has previously been uploaded to Google Play.
    receives the private upload key or its passwords. Download the artifact from
    that exact successful run and verify its `SHA256SUMS.txt` and source commit.
 2. Run `scripts/Sign-AndroidBundle.ps1` on the owner's Windows computer, supplying
-   `-Bundle` (the downloaded unsigned AAB) and `-JavaHome` (a JDK 17 directory).
+   `-Bundle` (the downloaded unsigned AAB), `-JavaHome` (a JDK 17 directory), and
+   `-Version '1.0.1-2'` (always match the build being signed).
    The script signs locally, verifies the signature strictly against the upload
    keystore, and writes a signed AAB, public certificate, verification output and
-   SHA-256 checksum under the ignored `release-artifacts/android/1.0.0-1/` folder.
+   SHA-256 checksum under the ignored `release-artifacts/android/<version>/` folder.
 3. Upload only the signed AAB to Google Play's internal testing track. The unsigned
    workflow artifact cannot be submitted as a release. Configure Play App Signing
    in Play Console; the local key is the **upload key**, not Google's app signing key.
