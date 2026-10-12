@@ -199,3 +199,11 @@ Book details and shared community actions are functional. Illustrative readershi
 counts, ratings, avatars and editor endorsements are not published as real data.
 Dedicated 60-second audio previews, saved-book lists and live discussion previews
 remain separate feature work; the existing reader supports device voice playback.
+
+### Book-summary branding (1.0.3+4)
+
+The header matches the blue Flutter symbol shown in the owner's supplied launcher
+screenshot, alongside ZITA and an explicit Book summaries descriptor. The hero
+explains reading/listening to book summaries and uses a blue gradient, blue
+illustration details and blue catalogue badges. The existing launcher icon is
+already the supplied symbol.

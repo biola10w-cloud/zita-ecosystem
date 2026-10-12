@@ -1,8 +1,22 @@
 # Android testing build
 
 Application ID: `com.zita.zita_app` (retain for future updates).
-Display name: **ZITA**. Current version: `1.0.2+3`.
+Display name: **ZITA**. Current version: `1.0.3+4`.
 The first build has been uploaded to Google Play internal testing by the owner.
+
+## Supplied logo and book-summary branding update
+
+- Version: `1.0.3+4`; source: `65cb63b126ac9178c39985d2a57ba19d71fb6a2c`.
+- [Successful workflow](https://github.com/biola10w-cloud/zita-ecosystem/actions/runs/38311562967).
+- Header matches the supplied launcher symbol, adds Book summaries, and uses a
+  rewritten hero with blue gradients, illustration accents and badges.
+- Static analysis and all 35 tests passed locally and in CI.
+- Signed file: `release-artifacts/android/1.0.3-4/ZITA-THE-APP-1.0.3-4.aab`.
+- SHA-256: `65d8e9bda115da9bc512bcf4a91db84e94a7e4fb59b7415a6c85db5ed64c9e4e`.
+- Strict signature and bundletool validation passed; existing package and upload
+  certificate retained. Manifest confirms ZITA, version 1.0.3, code 4 and a
+  non-debuggable release. Not uploaded to Google Play or tested on a physical
+  phone by us.
 
 ## Career discovery design update
 
@@ -66,7 +80,7 @@ The first build has been uploaded to Google Play internal testing by the owner.
    that exact successful run and verify its `SHA256SUMS.txt` and source commit.
 2. Run `scripts/Sign-AndroidBundle.ps1` on the owner's Windows computer, supplying
    `-Bundle` (the downloaded unsigned AAB), `-JavaHome` (a JDK 17 directory), and
-   `-Version '1.0.2-3'` (always match the build being signed).
+   `-Version '1.0.3-4'` (always match the build being signed).
    The script signs locally, verifies the signature strictly against the upload
    keystore, and writes a signed AAB, public certificate, verification output and
    SHA-256 checksum under the ignored `release-artifacts/android/<version>/` folder.
