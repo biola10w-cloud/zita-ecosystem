@@ -1,8 +1,24 @@
 # Android testing build
 
 Application ID: `com.zita.zita_app` (retain for future updates).
-Display name: **ZITA**. Current version: `1.0.1+2`.
+Display name: **ZITA**. Current version: `1.0.2+3`.
 The first build has been uploaded to Google Play internal testing by the owner.
+
+## Career discovery design update
+
+- Version: `1.0.2+3`; source: `2b107c5af54cdabc45edefbf468a187dade12c64`.
+- [Successful workflow](https://github.com/biola10w-cloud/zita-ecosystem/actions/runs/38309447037).
+- All 35 tests and static analysis passed locally and in CI. Responsive layout
+  checks cover narrow phones, wider screens and enlarged text.
+- Signed file: `release-artifacts/android/1.0.2-3/ZITA-THE-APP-1.0.2-3.aab`.
+- SHA-256: `aa09d0454e7e68d6bdbac722a0cfefe9146e8183110505d1eab1d2b8f24da250`.
+- Strict signature and bundletool validation passed. Package, version code 3,
+  version name 1.0.2, ZITA label and non-debuggable manifest verified. Uses the
+  original upload certificate. Not uploaded to Google Play by us; physical-device
+  verification remains with testers.
+- New blue hero and catalogue design uses real book data. Sample reader totals,
+  ratings, avatars and live discussion statistics are omitted. Dedicated audio
+  previews and saved-book actions are not part of this release.
 
 ## Homepage update testing bundle
 
@@ -50,7 +66,7 @@ The first build has been uploaded to Google Play internal testing by the owner.
    that exact successful run and verify its `SHA256SUMS.txt` and source commit.
 2. Run `scripts/Sign-AndroidBundle.ps1` on the owner's Windows computer, supplying
    `-Bundle` (the downloaded unsigned AAB), `-JavaHome` (a JDK 17 directory), and
-   `-Version '1.0.1-2'` (always match the build being signed).
+   `-Version '1.0.2-3'` (always match the build being signed).
    The script signs locally, verifies the signature strictly against the upload
    keystore, and writes a signed AAB, public certificate, verification output and
    SHA-256 checksum under the ignored `release-artifacts/android/<version>/` folder.
