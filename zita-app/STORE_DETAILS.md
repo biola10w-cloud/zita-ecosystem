@@ -1,6 +1,6 @@
 # Store identity
 
-- App display name: **ZITA THE APP**
+- App display name: **ZITA** (updated by the owner for the Play listing)
 - Developer/operator: **Afuwape Abiola Chris**
 - Support email: **zitatheapp@gmail.com**
 - Website: https://client-three-ruddy.vercel.app
