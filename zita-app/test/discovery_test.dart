@@ -26,6 +26,7 @@ void main() {
         baseUrl: 'https://api.example.com/api/v1',
         store: MemoryStore(),
         client: MockClient((request) async {
+          if (request.url.path.endsWith('/categories')) return ok([]);
           expect(request.headers.containsKey('Authorization'), isFalse);
           return ok(request.url.path.endsWith('/books/')
               ? [book('A Book')]
@@ -33,6 +34,11 @@ void main() {
         }));
     await tester.pumpWidget(MaterialApp(home: LibraryScreen(api: api)));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('A Book'), 300,
+        scrollable: find
+            .descendant(
+                of: find.byType(ListView), matching: find.byType(Scrollable))
+            .first);
     await tester.tap(find.text('A Book'));
     await tester.pumpAndSettle();
     expect(find.text('About this book'), findsOneWidget);
@@ -57,6 +63,7 @@ void main() {
         baseUrl: 'https://api.example.com/api/v1',
         store: MemoryStore(),
         client: MockClient((request) async {
+          if (request.url.path.endsWith('/categories')) return ok([]);
           final query = request.url.queryParameters['search'];
           queries.add(query);
           if (query == 'old') return stale.future;
@@ -68,6 +75,7 @@ void main() {
         }));
     await tester.pumpWidget(MaterialApp(home: LibraryScreen(api: api)));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.byType(TextField), 300);
     await tester.enterText(find.byType(TextField), 'old');
     await tester.pump(const Duration(milliseconds: 400));
     await tester.enterText(find.byType(TextField), 'new');
@@ -78,10 +86,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Stale result'), findsNothing);
     fail = false;
+    await tester.ensureVisible(find.text('Try again'));
     await tester.tap(find.text('Try again'));
     await tester.pumpAndSettle();
     expect(find.text('New result'), findsOneWidget);
     expect(queries, ['', 'old', 'new', 'new']);
+    await tester.ensureVisible(find.byTooltip('Clear search'));
     await tester.tap(find.byTooltip('Clear search'));
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
@@ -97,6 +107,7 @@ void main() {
         baseUrl: 'https://api.example.com/api/v1',
         store: MemoryStore(),
         client: MockClient((request) async {
+          if (request.url.path.endsWith('/categories')) return ok([]);
           requests.add(request.url);
           return ok(request.url.queryParameters['page'] == '1'
               ? List.generate(20, (i) => book('Result $i'))
@@ -104,6 +115,7 @@ void main() {
         }));
     await tester.pumpWidget(MaterialApp(home: LibraryScreen(api: api)));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.byType(TextField), 300);
     await tester.enterText(find.byType(TextField), 'A Reader & friends');
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();

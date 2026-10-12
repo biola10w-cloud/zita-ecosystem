@@ -7,6 +7,8 @@ import 'community.dart';
 import 'languages.dart';
 import 'listen_controls.dart';
 import 'account.dart';
+import 'discovery_widgets.dart';
+import 'brand_art.dart';
 
 class RetryView extends StatelessWidget {
   const RetryView({super.key, required this.error, required this.retry});
@@ -36,6 +38,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
   bool loading = false, more = true;
   Object? error;
   String query = '';
+  List<Map<String, dynamic>> categories = [];
+  Map<String, dynamic>? category;
+  bool categoriesLoading = true;
+  Object? categoriesError;
+  final catalogKey = GlobalKey();
+  final introKey = GlobalKey();
+  final listScroll = ScrollController();
   final search = TextEditingController();
   Timer? searchTimer;
   int generation = 0;
@@ -43,6 +52,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   void initState() {
     super.initState();
     load();
+    loadCategories();
     widget.api.addListener(changed);
   }
 
@@ -54,6 +64,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   void dispose() {
     searchTimer?.cancel();
     search.dispose();
+    listScroll.dispose();
     widget.api.removeListener(changed);
     super.dispose();
   }
@@ -76,6 +87,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         'page': '$targetPage',
         'limit': '20',
         'search': query.trim(),
+        if (category != null) 'categoryId': category!['id'] as String,
       }).toString()));
       if (!mounted || requestGeneration != generation) return;
       setState(() {
@@ -119,108 +131,231 @@ class _LibraryScreenState extends State<LibraryScreen> {
         Timer(const Duration(milliseconds: 350), () => load(reset: true));
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final visible = books;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Zita'), actions: [
-        IconButton(
-            tooltip: 'My reading',
-            icon: const Icon(Icons.person_outline),
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => AccountScreen(api: widget.api)))),
-        IconButton(
-            tooltip: 'Community',
-            icon: const Icon(Icons.forum_outlined),
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => CommunityScreen(api: widget.api)))),
-        TextButton(
-            onPressed: () async {
-              if (widget.api.signedIn) {
-                try {
-                  await widget.api.signOut();
-                } catch (_) {
-                  /* Local credentials are cleared even when offline. */
-                }
-              } else {
-                if (context.mounted) {
-                  await Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => AuthScreen(api: widget.api)));
-                }
-              }
-            },
-            child: Text(widget.api.signedIn ? 'Sign out' : 'Sign in')),
-      ]),
-      body: RefreshIndicator(
-          onRefresh: () => load(reset: true),
-          child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(20),
-              children: [
-                Text('A calmer place to grow.',
-                    style: Theme.of(context).textTheme.headlineLarge),
-                const SizedBox(height: 12),
-                const Text(
-                    'Find your next read and pick up where you left off.'),
-                const SizedBox(height: 24),
-                TextField(
-                    controller: search,
-                    onChanged: searchChanged,
-                    maxLength: 200,
-                    decoration: InputDecoration(
-                        labelText: 'Search by title or author',
-                        counterText: '',
-                        prefixIcon: const Icon(Icons.search),
-                        suffixIcon: query.isEmpty
-                            ? null
-                            : IconButton(
-                                tooltip: 'Clear search',
-                                onPressed: () {
-                                  search.clear();
-                                  searchChanged('');
-                                },
-                                icon: const Icon(Icons.clear)),
-                        border: const OutlineInputBorder())),
-                const SizedBox(height: 20),
-                for (final book in visible)
-                  Card(
-                      child: ListTile(
-                    contentPadding: const EdgeInsets.all(16),
-                    leading: BookCover(
-                        url: book['coverUrl'] as String?,
-                        width: 42,
-                        height: 64),
-                    title: Text(book['title'] as String),
-                    subtitle: Text(
-                        '${book['authorName']}\n${book['estimatedMinutes'] ?? 0} min read${book['isPremium'] == true ? ' · Premium' : ''}'),
-                    isThreeLine: true,
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => openBook(book),
-                  )),
-                if (!loading && error == null && visible.isEmpty)
-                  Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Text(query.trim().isEmpty
-                          ? 'The library is empty. Published books will appear here.'
-                          : 'No books match your search.')),
-                if (error != null)
-                  RetryView(error: error!, retry: () => load()),
-                if (loading)
-                  const Center(
-                      child: Padding(
-                          padding: EdgeInsets.all(24),
-                          child: CircularProgressIndicator())),
-                if (more && !loading && error == null)
-                  TextButton(
-                      onPressed: load, child: const Text('Load more books')),
-              ])),
-    );
+  Future<void> loadCategories() async {
+    setState(() {
+      categoriesLoading = true;
+      categoriesError = null;
+    });
+    try {
+      final result = List<Map<String, dynamic>>.from(
+          await widget.api.request('books/categories'));
+      if (mounted) setState(() => categories = result);
+    } catch (e) {
+      if (mounted) setState(() => categoriesError = e);
+    } finally {
+      if (mounted) setState(() => categoriesLoading = false);
+    }
   }
+
+  void selectCategory(Map<String, dynamic>? value) {
+    searchTimer?.cancel();
+    setState(() => category = value);
+    load(reset: true);
+  }
+
+  void explore() {
+    final target = catalogKey.currentContext;
+    if (target != null) {
+      Scrollable.ensureVisible(target,
+          duration: const Duration(milliseconds: 350));
+    } else if (listScroll.hasClients) {
+      final intro = introKey.currentContext?.findRenderObject() as RenderBox?;
+      listScroll.animateTo(
+          (intro?.size.height ?? 600)
+              .clamp(0, listScroll.position.maxScrollExtent),
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOut);
+    }
+  }
+
+  void openCommunity() => Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => CommunityScreen(api: widget.api)));
+
+  void authenticate({bool register = false}) =>
+      Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) =>
+              AuthScreen(api: widget.api, initialRegister: register)));
+
+  Future<void> chooseCategory() async {
+    final selected = await showModalBottomSheet<Map<String, dynamic>>(
+        context: context,
+        isScrollControlled: true,
+        showDragHandle: true,
+        builder: (_) => CategoryPickerSheet(
+            categories: categories, selected: category?['id'] as String?));
+    if (mounted && selected != null) {
+      selectCategory(selected.isEmpty ? null : selected);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(
+            title: const FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: ZitaWordmark()),
+            actions: [
+              if (widget.api.signedIn)
+                IconButton(
+                    tooltip: 'My reading',
+                    icon: const Icon(Icons.person_outline),
+                    onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                            builder: (_) => AccountScreen(api: widget.api)))),
+              IconButton(
+                  tooltip: 'Community',
+                  icon: const Icon(Icons.forum_outlined),
+                  onPressed: openCommunity),
+              TextButton(
+                  onPressed: () async {
+                    if (widget.api.signedIn) {
+                      try {
+                        await widget.api.signOut();
+                      } catch (_) {/* Local session is cleared. */}
+                    } else {
+                      authenticate();
+                    }
+                  },
+                  child: Text(widget.api.signedIn ? 'Sign out' : 'Sign in')),
+            ]),
+        body: RefreshIndicator(
+            onRefresh: () async {
+              await Future.wait([load(reset: true), loadCategories()]);
+            },
+            child: ListView(
+                controller: listScroll,
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(20),
+                children: [
+                  DiscoveryIntro(
+                      key: introKey,
+                      signedIn: widget.api.signedIn,
+                      onRegister: () => authenticate(register: true),
+                      onExplore: explore,
+                      onCommunity: openCommunity),
+                  Text('Find your next read',
+                      key: catalogKey,
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 14),
+                  TextField(
+                      controller: search,
+                      onChanged: searchChanged,
+                      maxLength: 200,
+                      decoration: InputDecoration(
+                          labelText: 'Search by title or author',
+                          counterText: '',
+                          prefixIcon: const Icon(Icons.search),
+                          suffixIcon: query.isEmpty
+                              ? null
+                              : IconButton(
+                                  tooltip: 'Clear search',
+                                  onPressed: () {
+                                    search.clear();
+                                    searchChanged('');
+                                  },
+                                  icon: const Icon(Icons.clear)),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16)))),
+                  const SizedBox(height: 12),
+                  Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        ChoiceChip(
+                            label: const Text('All books'),
+                            selected: category == null,
+                            onSelected: (_) => selectCategory(null)),
+                        for (final item in categories.take(4))
+                          ChoiceChip(
+                              label: Text(item['name'] as String),
+                              selected: category?['id'] == item['id'],
+                              onSelected: (_) => selectCategory(item)),
+                        if (categories.isNotEmpty)
+                          ActionChip(
+                              avatar: const Icon(Icons.grid_view, size: 18),
+                              label: const Text('All categories'),
+                              onPressed: chooseCategory),
+                      ]),
+                  if (categoriesLoading)
+                    const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: LinearProgressIndicator()),
+                  if (categoriesError != null)
+                    Row(children: [
+                      const Expanded(
+                          child: Text(
+                              'Categories are unavailable. You can still search books.')),
+                      TextButton(
+                          onPressed: loadCategories,
+                          child: const Text('Retry categories'))
+                    ]),
+                  if (!categoriesLoading &&
+                      categoriesError == null &&
+                      categories.isEmpty)
+                    const Text(
+                        'Categories will appear as the library is organised.'),
+                  if (category != null)
+                    Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Wrap(
+                            spacing: 8,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Text('Browsing: ${category!['name']}'),
+                              TextButton(
+                                  onPressed: () => selectCategory(null),
+                                  child: const Text('Clear category'))
+                            ])),
+                  const SizedBox(height: 20),
+                  const Text(
+                      'Open any book to see its description. Premium reading access is marked on each book.',
+                      style: TextStyle(fontSize: 12, height: 1.5)),
+                  const SizedBox(height: 16),
+                  for (final book in books)
+                    DiscoveryBookCard(book: book, onTap: () => openBook(book)),
+                  if (!loading && error == null && books.isEmpty)
+                    Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(category != null
+                            ? 'No published books match this category and search yet.'
+                            : query.trim().isEmpty
+                                ? 'The library is empty. Published books will appear here.'
+                                : 'No books match your search.')),
+                  if (error != null)
+                    RetryView(error: error!, retry: () => load()),
+                  if (loading)
+                    const Center(
+                        child: Padding(
+                            padding: EdgeInsets.all(24),
+                            child: CircularProgressIndicator())),
+                  if (more && !loading && error == null)
+                    TextButton(
+                        onPressed: load, child: const Text('Load more books')),
+                  const SizedBox(height: 24),
+                  OutlinedButton.icon(
+                      onPressed: openCommunity,
+                      icon: const Icon(Icons.forum_outlined),
+                      label: const Text('Explore the reader community')),
+                  const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Text(
+                          'Browse discussions freely. Sign in to share your thoughts and connect with other readers.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(height: 1.5))),
+                ])),
+      );
 }
 
 class AuthScreen extends StatefulWidget {
-  const AuthScreen({super.key, required this.api});
+  const AuthScreen(
+      {super.key, required this.api, this.initialRegister = false});
   final ZitaApi api;
+  final bool initialRegister;
   @override
   State<AuthScreen> createState() => _AuthScreenState();
 }
@@ -230,7 +365,14 @@ class _AuthScreenState extends State<AuthScreen> {
   final email = TextEditingController(),
       password = TextEditingController(),
       name = TextEditingController();
-  bool register = false, busy = false, hidden = true;
+  late bool register;
+  bool busy = false, hidden = true;
+  @override
+  void initState() {
+    super.initState();
+    register = widget.initialRegister;
+  }
+
   Object? error;
   @override
   void dispose() {

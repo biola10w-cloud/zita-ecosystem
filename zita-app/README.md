@@ -170,3 +170,22 @@ testing, not Play Store submission. No signing keys or store credentials are in 
   physical-device test has been performed here.
 - This batch requires deployment of the backend migration/API and reader website.
   The earlier backend Dockerfile repair was deployed separately.
+
+## Public homepage refresh — 1.0.1+2
+
+The native homepage now introduces ZITA before sign-in, with an illustrated
+reading/listening hero, a custom vector book-mark logo, and bundled OFL-licensed
+Lora typography. Public actions explain voice reading, translation availability,
+and saved reading progress, and open the global community. Create account opens
+registration directly; Explore books scrolls to the public catalog.
+
+Category chips and a searchable category/subcategory picker use the existing
+public API. Category filtering combines with title/author search, persists during
+pagination, and discards stale responses after a filter change. Book descriptions
+remain public. No sample books are added to the live library. Android/iOS display
+names now match the owner's revised name, ZITA; the package name remains unchanged.
+
+The phone preview is generated from real Flutter widgets by the homepage test,
+with optional `ZITA_PREVIEW_DIR` on Windows. It is not a substitute for testing the
+updated bundle on a physical Android phone. Version code 2 must replace code 1 in
+the existing Play internal testing track; no new app listing or upload key is needed.
