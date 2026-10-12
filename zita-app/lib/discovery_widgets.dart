@@ -45,21 +45,28 @@ class DiscoveryIntro extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: const Color(0xffeaf3ff),
+            gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xffedf7ff),
+                  Color(0xffdcecff),
+                  Color(0xffeaf1ff)
+                ]),
             borderRadius: BorderRadius.circular(28),
           ),
           child: LayoutBuilder(builder: (context, constraints) {
             final copy = Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('YOUR NEXT CHAPTER STARTS HERE',
+                const Text('BOOK SUMMARIES. BIG POSSIBILITIES.',
                     style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1.4,
                         color: Color(0xff334155))),
                 const SizedBox(height: 16),
-                const Text('Find career-changing reads in 30 minutes',
+                const Text('Big ideas. Less reading. More growing.',
                     style: TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.w800,
@@ -67,7 +74,7 @@ class DiscoveryIntro extends StatelessWidget {
                         color: Color(0xff172033))),
                 const SizedBox(height: 16),
                 const Text(
-                    'Curated summaries, audio highlights, and a reader community that helps you act on what you learn.',
+                    'Discover the key ideas from books in bite-sized summaries. Read or listen, find a fresh perspective, and share what you learn with the ZITA community.',
                     style: TextStyle(
                         fontSize: 16, height: 1.55, color: Color(0xff475569))),
                 const SizedBox(height: 24),
@@ -76,7 +83,7 @@ class DiscoveryIntro extends StatelessWidget {
                         style: FilledButton.styleFrom(
                             minimumSize: const Size(0, 52)),
                         onPressed: onExplore,
-                        child: const Text('Explore curated reads'))),
+                        child: const Text('Explore book summaries'))),
                 if (!signedIn) ...[
                   const SizedBox(height: 12),
                   PressMotion(
@@ -242,11 +249,11 @@ class DiscoveryBookCard extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 12, vertical: 6),
                               decoration: BoxDecoration(
-                                  color: const Color(0xffffb86b),
+                                  color: const Color(0xffdbeafe),
                                   borderRadius: BorderRadius.circular(20)),
                               child: const Text('Discover a new read',
                                   style: TextStyle(
-                                      color: Color(0xff422600),
+                                      color: Color(0xff123b70),
                                       fontWeight: FontWeight.w600))),
                           const SizedBox(height: 16),
                         ],

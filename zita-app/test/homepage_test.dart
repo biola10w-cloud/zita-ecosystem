@@ -105,8 +105,10 @@ void main() {
     await tester
         .pumpWidget(RepaintBoundary(key: screenshot, child: ZitaApp(api: api)));
     await tester.pumpAndSettle();
-    expect(
-        find.text('Find career-changing reads in 30 minutes'), findsOneWidget);
+    expect(find.text('Big ideas. Less reading. More growing.'), findsOneWidget);
+    expect(find.text('Book summaries'), findsOneWidget);
+    expect(find.text('Explore book summaries'), findsOneWidget);
+    expect(find.byType(FlutterLogo), findsOneWidget);
     expect(tester.takeException(), isNull);
     if (preview != null) {
       await tester.runAsync(() async {
