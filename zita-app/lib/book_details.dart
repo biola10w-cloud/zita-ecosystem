@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'api.dart';
 import 'screens.dart';
+import 'subscription.dart';
 
 class BookCover extends StatelessWidget {
   const BookCover({super.key, this.url, this.width = 140, this.height = 200});
@@ -121,6 +122,13 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                         padding: EdgeInsets.only(top: 20),
                         child: Text(
                             'Premium reading access is required to read this book. Its description is free to view.')),
+                  if (book['isPremium'] == true)
+                    TextButton(
+                        onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                    SubscriptionScreen(api: widget.api))),
+                        child: const Text('View subscription')),
                   const SizedBox(height: 24),
                   FilledButton.icon(
                       onPressed: opening ? null : read,

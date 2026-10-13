@@ -9,6 +9,7 @@ import 'listen_controls.dart';
 import 'account.dart';
 import 'discovery_widgets.dart';
 import 'brand_art.dart';
+import 'subscription.dart';
 
 class RetryView extends StatelessWidget {
   const RetryView({super.key, required this.error, required this.retry});
@@ -914,10 +915,44 @@ class _ReaderScreenState extends State<ReaderScreen>
                             child: Text(translationStatus)),
                     ]))
                   : error != null
-                      ? RetryView(
-                          error: error!,
-                          retry: () =>
-                              chapters.isEmpty ? initialize() : loadChapter())
+                      ? subscriptionRequired(error)
+                          ? Center(
+                              child: SingleChildScrollView(
+                                  child: Padding(
+                                      padding: const EdgeInsets.all(24),
+                                      child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(Icons.lock_outline,
+                                                size: 40),
+                                            const SizedBox(height: 16),
+                                            const Text(
+                                                'Premium access is required to read this book.',
+                                                textAlign: TextAlign.center),
+                                            const SizedBox(height: 16),
+                                            FilledButton(
+                                                onPressed: () async {
+                                                  await Navigator.of(context)
+                                                      .push(MaterialPageRoute(
+                                                          builder: (_) =>
+                                                              SubscriptionScreen(
+                                                                  api: widget
+                                                                      .api)));
+                                                  if (mounted &&
+                                                      widget.api.signedIn) {
+                                                    chapters.isEmpty
+                                                        ? initialize()
+                                                        : loadChapter();
+                                                  }
+                                                },
+                                                child: const Text(
+                                                    'View subscription')),
+                                          ]))))
+                          : RetryView(
+                              error: error!,
+                              retry: () => chapters.isEmpty
+                                  ? initialize()
+                                  : loadChapter())
                       : SingleChildScrollView(
                           controller: scroll,
                           padding: const EdgeInsets.all(24),

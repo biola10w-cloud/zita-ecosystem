@@ -207,3 +207,20 @@ screenshot, alongside ZITA and an explicit Book summaries descriptor. The hero
 explains reading/listening to book summaries and uses a blue gradient, blue
 illustration details and blue catalogue badges. The existing launcher icon is
 already the supplied symbol.
+
+### Subscription navigation fix (pending next mobile release)
+
+Premium-content denials now open a dedicated subscription page via View
+subscription. Book details and My reading link to the same page. Existing
+entitlements can be refreshed, and returning to the reader retries protected
+content. Sign-out clears the displayed subscription. New purchases remain
+unavailable until Google Play products and native billing are connected.
+
+Owner-selected pricing: USD 5 monthly. Proposed Play product: com.zita.monthly;
+base plan: monthly, auto-renewing. No annual plan or trial is configured by this
+change. Display localized store prices once billing is connected, rather than
+using the backend's older hardcoded plan catalogue. Backend receipt ownership,
+purchase verification and notification handling must be checked before sales.
+
+Validation: static analysis and all 38 Flutter tests pass, including navigation
+from a denied chapter, refreshed access, and clearing access on sign-out.

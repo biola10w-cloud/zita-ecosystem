@@ -3,6 +3,7 @@ import 'api.dart';
 import 'screens.dart';
 import 'book_details.dart';
 import 'recovery.dart';
+import 'subscription.dart';
 
 bool premiumAccess(Map<String, dynamic>? sub, {DateTime? now}) {
   if (sub == null || !['ACTIVE', 'TRIALING'].contains(sub['status'])) {
@@ -181,6 +182,15 @@ class _AccountScreenState extends State<AccountScreen>
                             ],
                             const Text(
                                 'This app uses the reading access already linked to your Zita account. New purchases are not available in this build.'),
+                            FilledButton(
+                                onPressed: () async {
+                                  await Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                          builder: (_) => SubscriptionScreen(
+                                              api: widget.api)));
+                                  if (mounted) load();
+                                },
+                                child: const Text('View subscription')),
                             TextButton(
                                 onPressed: load,
                                 child: const Text('Refresh access')),
