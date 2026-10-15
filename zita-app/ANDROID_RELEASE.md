@@ -1,8 +1,20 @@
 # Android testing build
 
 Application ID: `com.zita.zita_app` (retain for future updates).
-Display name: **ZITA**. Current version: `1.0.4+5`.
+Display name: **ZITA**. Current version: `1.0.5+6`.
 The first build has been uploaded to Google Play internal testing by the owner.
+
+## Preview-style screen update
+
+- Version: `1.0.5+6`; source: `b13a58d095825bf35e1af158bcde955be3160660`.
+- Preview-style login, home surfaces, reader toolbar and fixed narration dock,
+  and global community feed with header sorting and fixed composer.
+- All 41 Flutter tests pass; final community/layout checks also pass.
+- Signed file: `release-artifacts/android/1.0.5-6/ZITA-THE-APP-1.0.5-6.aab`.
+- SHA-256: `fddaf3ba85b753205eb92c9e5e5c53a89e7101c7e6bf6f9114b63b6998e5b3c7`.
+- Local release compilation, strict signature and bundletool validation passed.
+  Package, original certificate, ZITA label and non-debuggable manifest verified.
+- Not uploaded to Play or tested on a physical device by us.
 
 ## Phase 2 structure and tester access update
 
