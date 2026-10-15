@@ -48,6 +48,7 @@ class _AccountScreenState extends State<AccountScreen>
 
   void sessionChanged() {
     if (!mounted) return;
+    if (widget.api.signedIn) setState(() {});
     if (!widget.api.signedIn) {
       generation++;
       setState(() {
@@ -165,35 +166,44 @@ class _AccountScreenState extends State<AccountScreen>
                                   onTap: () => openReader(
                                       Map<String, dynamic>.from(item['book']))),
                             const Divider(height: 32),
-                            Text('Subscription',
-                                style: Theme.of(context).textTheme.titleLarge),
-                            Text(active
-                                ? 'Premium access is active'
-                                : 'No active premium subscription'),
-                            if (subscription != null) ...[
-                              Text('Status: ${subscription!['status']}'),
-                              Text(
-                                  'Current period ends: ${(subscription!['currentPeriodEnd'] as String).split('T').first}'),
-                              Text(platform == 'IOS'
-                                  ? 'Manage or cancel in Apple Settings > your name > Subscriptions.'
-                                  : platform == 'ANDROID'
-                                      ? 'Manage or cancel in Google Play > Payments & subscriptions > Subscriptions.'
-                                      : 'Your subscription is billed through the Zita website.'),
+                            if (widget.api.readingTestAccess) ...[
+                              Text('Reading access',
+                                  style:
+                                      Theme.of(context).textTheme.titleLarge),
+                              const Text(
+                                  'Books are open for testing. No subscription is needed.'),
+                            ] else ...[
+                              Text('Subscription',
+                                  style:
+                                      Theme.of(context).textTheme.titleLarge),
+                              Text(active
+                                  ? 'Premium access is active'
+                                  : 'No active premium subscription'),
+                              if (subscription != null) ...[
+                                Text('Status: ${subscription!['status']}'),
+                                Text(
+                                    'Current period ends: ${(subscription!['currentPeriodEnd'] as String).split('T').first}'),
+                                Text(platform == 'IOS'
+                                    ? 'Manage or cancel in Apple Settings > your name > Subscriptions.'
+                                    : platform == 'ANDROID'
+                                        ? 'Manage or cancel in Google Play > Payments & subscriptions > Subscriptions.'
+                                        : 'Your subscription is billed through the Zita website.'),
+                              ],
+                              const Text(
+                                  'This app uses the reading access already linked to your Zita account. New purchases are not available in this build.'),
+                              FilledButton(
+                                  onPressed: () async {
+                                    await Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                            builder: (_) => SubscriptionScreen(
+                                                api: widget.api)));
+                                    if (mounted) load();
+                                  },
+                                  child: const Text('View subscription')),
+                              TextButton(
+                                  onPressed: load,
+                                  child: const Text('Refresh access')),
                             ],
-                            const Text(
-                                'This app uses the reading access already linked to your Zita account. New purchases are not available in this build.'),
-                            FilledButton(
-                                onPressed: () async {
-                                  await Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                          builder: (_) => SubscriptionScreen(
-                                              api: widget.api)));
-                                  if (mounted) load();
-                                },
-                                child: const Text('View subscription')),
-                            TextButton(
-                                onPressed: load,
-                                child: const Text('Refresh access')),
                             const Divider(),
                             ListTile(
                                 title: const Text('Blocked readers'),

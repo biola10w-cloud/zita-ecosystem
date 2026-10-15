@@ -27,13 +27,14 @@ class RetryView extends StatelessWidget {
 }
 
 class LibraryScreen extends StatefulWidget {
-  const LibraryScreen({super.key, required this.api});
+  const LibraryScreen({super.key, required this.api, this.showIntro = true});
+  final bool showIntro;
   final ZitaApi api;
   @override
-  State<LibraryScreen> createState() => _LibraryScreenState();
+  State<LibraryScreen> createState() => LibraryScreenState();
 }
 
-class _LibraryScreenState extends State<LibraryScreen> {
+class LibraryScreenState extends State<LibraryScreen> {
   final List<Map<String, dynamic>> books = [];
   int page = 1;
   bool loading = false, more = true;
@@ -57,6 +58,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
     searchFocus.addListener(changed);
     load();
     loadCategories();
+    widget.api.refreshAccessPolicy();
     widget.api.addListener(changed);
   }
 
@@ -238,19 +240,25 @@ class _LibraryScreenState extends State<LibraryScreen> {
             ]),
         body: RefreshIndicator(
             onRefresh: () async {
-              await Future.wait([load(reset: true), loadCategories()]);
+              await Future.wait([
+                load(reset: true),
+                loadCategories(),
+                widget.api.refreshAccessPolicy()
+              ]);
             },
             child: ListView(
                 controller: listScroll,
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(20),
                 children: [
-                  DiscoveryIntro(
-                      key: introKey,
-                      signedIn: widget.api.signedIn,
-                      onRegister: () => authenticate(register: true),
-                      onExplore: explore,
-                      onCommunity: openCommunity),
+                  if (widget.showIntro)
+                    DiscoveryIntro(
+                        key: introKey,
+                        signedIn: widget.api.signedIn,
+                        readingTestAccess: widget.api.readingTestAccess,
+                        onRegister: () => authenticate(register: true),
+                        onExplore: explore,
+                        onCommunity: openCommunity),
                   Text('Find your next read',
                       key: catalogKey,
                       style: Theme.of(context)
@@ -356,9 +364,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                   child: const Text('Clear category'))
                             ])),
                   const SizedBox(height: 20),
-                  const Text(
-                      'Open any book to see its description. Premium reading access is marked on each book.',
-                      style: TextStyle(fontSize: 12, height: 1.5)),
+                  Text(
+                      widget.api.readingTestAccess
+                          ? 'Books are open for testing. Sign in to read, listen and save your progress.'
+                          : 'Open any book to see its description. Premium reading access is marked on each book.',
+                      style: const TextStyle(fontSize: 12, height: 1.5)),
                   const SizedBox(height: 16),
                   for (final book in books)
                     DiscoveryBookCard(

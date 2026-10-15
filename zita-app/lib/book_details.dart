@@ -117,12 +117,14 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                           ? 'A description has not been added yet.'
                           : description,
                       style: const TextStyle(height: 1.6)),
-                  if (book['isPremium'] == true)
+                  if (book['isPremium'] == true &&
+                      !widget.api.readingTestAccess)
                     const Padding(
                         padding: EdgeInsets.only(top: 20),
                         child: Text(
                             'Premium reading access is required to read this book. Its description is free to view.')),
-                  if (book['isPremium'] == true)
+                  if (book['isPremium'] == true &&
+                      !widget.api.readingTestAccess)
                     TextButton(
                         onPressed: () => Navigator.of(context).push(
                             MaterialPageRoute(

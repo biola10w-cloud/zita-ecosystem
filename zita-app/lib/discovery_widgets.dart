@@ -6,10 +6,12 @@ class DiscoveryIntro extends StatelessWidget {
   const DiscoveryIntro(
       {super.key,
       required this.signedIn,
+      this.readingTestAccess = false,
       required this.onRegister,
       required this.onExplore,
       required this.onCommunity});
   final bool signedIn;
+  final bool readingTestAccess;
   final VoidCallback onRegister, onExplore, onCommunity;
 
   void explain(BuildContext context, String title, String description) {
@@ -155,8 +157,12 @@ class DiscoveryIntro extends StatelessWidget {
           ActionChip(
               avatar: const Icon(Icons.bookmark_border, size: 19),
               label: const Text('Save your place'),
-              onPressed: () => explain(context, 'Pick up where you left off',
-                  'Sign in to save your reading position and see your reading activity in My reading. Creating an account is free; premium books require reading access.')),
+              onPressed: () => explain(
+                  context,
+                  'Pick up where you left off',
+                  readingTestAccess
+                      ? 'Sign in to save your reading position and see your reading activity in My reading. Books are open for testing without a subscription.'
+                      : 'Sign in to save your reading position and see your reading activity in My reading. Creating an account is free; premium books require reading access.')),
         ]),
         const SizedBox(height: 24),
       ]);

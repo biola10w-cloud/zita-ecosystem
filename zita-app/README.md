@@ -224,3 +224,24 @@ purchase verification and notification handling must be checked before sales.
 
 Validation: static analysis and all 38 Flutter tests pass, including navigation
 from a denied chapter, refreshed access, and clearing access on sign-out.
+
+### Temporary tester reading access (1.0.4+5)
+
+READING_TEST_EMAILS is an explicit comma-separated allowlist of ZITA login emails.
+Only matching signed-in users can open premium published books without paying.
+Drafts remain inaccessible and stored prices/subscriptions are unchanged.
+Remove an email to revoke its testing access; clear the list to disable this mode.
+The obsolete READING_TEST_ACCESS global switch is not supported.
+The access-policy endpoint requires authentication and does not expose the list.
+
+### Phase 2 mobile structure (1.0.4+5)
+
+Matches the navigation and signed-in home arrangement in zita_app_preview.html:
+Home, Explore, Library and Profile tabs; fixed category controls; horizontal
+Continue Reading cards; a featured book; and a two-column Trending grid.
+Community remains a separate shared page. Blue branding and the public
+book-summary introduction are preserved. Library uses actual reading progress;
+empty collections do not display sample books or invented statistics.
+
+Validation: Flutter analysis and 40 tests pass, including category navigation,
+library progress, logout clearing private progress, and tester access display.

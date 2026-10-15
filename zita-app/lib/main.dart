@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'api.dart';
-import 'screens.dart';
+import 'mobile_home.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,6 +39,6 @@ class ZitaApp extends StatelessWidget {
               onSecondaryContainer: const Color(0xff174965),
             ),
             scaffoldBackgroundColor: const Color(0xfff6f8fb)),
-        home: LibraryScreen(api: api),
+        home: MobileShell(api: api),
       );
 }

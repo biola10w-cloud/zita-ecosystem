@@ -22,6 +22,35 @@ Future<ZitaApi> apiFor(
 }
 
 void main() {
+  testWidgets(
+      'testing access hides subscription actions and returns to normal when disabled',
+      (tester) async {
+    var enabled = true;
+    final api = await apiFor((request) async {
+      if (request.url.path.endsWith('/access-policy')) {
+        expect(request.headers['Authorization'], 'Bearer access');
+        return ok({'readingTestAccess': enabled});
+      }
+      if (request.url.path.endsWith('/users/me')) {
+        return ok({'displayName': 'Tester'});
+      }
+      if (request.url.path.endsWith('/subscriptions/me')) return ok(null);
+      return ok({'inProgressBooks': []});
+    });
+    await api.refreshAccessPolicy();
+    await tester.pumpWidget(MaterialApp(home: AccountScreen(api: api)));
+    await tester.pumpAndSettle();
+    expect(find.text('Books are open for testing. No subscription is needed.'),
+        findsOneWidget);
+    expect(find.text('View subscription'), findsNothing);
+    enabled = false;
+    await api.refreshAccessPolicy();
+    await tester.pumpAndSettle();
+    expect(find.text('View subscription'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    api.dispose();
+  });
+
   test('premium access requires active status and an unexpired period', () {
     final now = DateTime.utc(2026, 10, 5);
     expect(

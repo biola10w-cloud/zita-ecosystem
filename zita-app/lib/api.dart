@@ -55,6 +55,26 @@ class ZitaApi extends ChangeNotifier {
   String? _refresh;
   Future<void>? _refreshing;
   bool get signedIn => _refresh != null;
+  bool readingTestAccess = false;
+  Future<void> refreshAccessPolicy() async {
+    try {
+      if (!signedIn) {
+        if (readingTestAccess) {
+          readingTestAccess = false;
+          notifyListeners();
+        }
+        return;
+      }
+      final result = await request('books/access-policy', authenticated: true);
+      final enabled = result is Map && result['readingTestAccess'] == true;
+      if (enabled != readingTestAccess) {
+        readingTestAccess = enabled;
+        notifyListeners();
+      }
+    } catch (_) {
+      // Access is still enforced by the server; retain the last known display state.
+    }
+  }
 
   Future<void> restore() async {
     final saved = await store.read('zita_session');
@@ -80,6 +100,7 @@ class ZitaApi extends ChangeNotifier {
   }
 
   Future<void> clearSession() async {
+    readingTestAccess = false;
     _access = null;
     _refresh = null;
     await store.delete('zita_session');

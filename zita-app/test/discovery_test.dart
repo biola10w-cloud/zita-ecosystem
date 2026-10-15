@@ -26,6 +26,9 @@ void main() {
         baseUrl: 'https://api.example.com/api/v1',
         store: MemoryStore(),
         client: MockClient((request) async {
+          if (request.url.path.endsWith('/access-policy')) {
+            return ok({'readingTestAccess': false});
+          }
           if (request.url.path.endsWith('/categories')) return ok([]);
           expect(request.headers.containsKey('Authorization'), isFalse);
           return ok(request.url.path.endsWith('/books/')
@@ -63,6 +66,9 @@ void main() {
         baseUrl: 'https://api.example.com/api/v1',
         store: MemoryStore(),
         client: MockClient((request) async {
+          if (request.url.path.endsWith('/access-policy')) {
+            return ok({'readingTestAccess': false});
+          }
           if (request.url.path.endsWith('/categories')) return ok([]);
           final query = request.url.queryParameters['search'];
           queries.add(query);
@@ -107,6 +113,9 @@ void main() {
         baseUrl: 'https://api.example.com/api/v1',
         store: MemoryStore(),
         client: MockClient((request) async {
+          if (request.url.path.endsWith('/access-policy')) {
+            return ok({'readingTestAccess': false});
+          }
           if (request.url.path.endsWith('/categories')) return ok([]);
           requests.add(request.url);
           return ok(request.url.queryParameters['page'] == '1'
