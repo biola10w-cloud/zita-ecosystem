@@ -1,8 +1,23 @@
 # Android testing build
 
 Application ID: `com.zita.zita_app` (retain for future updates).
-Display name: **ZITA**. Current version: `1.0.3+4`.
+Display name: **ZITA**. Current version: `1.0.4+5`.
 The first build has been uploaded to Google Play internal testing by the owner.
+
+## Phase 2 structure and tester access update
+
+- Version: `1.0.4+5`; source: `4e7e16167fcfb70c8868b9854696d407b42d34ae`.
+- Built locally after GitHub Actions could not start due to account billing.
+- Four tabs: Home, Explore, Library, Profile. Category browsing, horizontal
+  Continue Reading, featured book and Trending grid follow the Phase 2 preview.
+- Approved testers see reading access without subscription prompts.
+- Static analysis and all 40 Flutter tests passed before release compilation.
+- Signed file: `release-artifacts/android/1.0.4-5/ZITA-THE-APP-1.0.4-5.aab`.
+- SHA-256: `be48227f6f7a586d0e794651cec964925d0129a7cde63297b4c3ab2495ee64c6`.
+- Strict signature and bundletool validation passed. Package, original upload
+  certificate, ZITA label, version code 5 and non-debuggable manifest verified.
+- Not uploaded to Google Play or tested on a physical device by us. Upload this
+  AAB to a new release in the existing internal testing track.
 
 ## Supplied logo and book-summary branding update
 
