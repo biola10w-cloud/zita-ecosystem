@@ -469,104 +469,149 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar:
-            AppBar(title: Text(register ? 'Create account' : 'Welcome back')),
-        body: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: AutofillGroup(
-                child: Form(
-                    key: form,
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          if (register)
-                            TextFormField(
-                                controller: name,
-                                enabled: !busy,
-                                autofillHints: const [AutofillHints.name],
-                                decoration: const InputDecoration(
-                                    labelText: 'Display name'),
-                                maxLength: 50,
-                                validator: (v) => (v?.trim().length ?? 0) < 2
-                                    ? 'Enter at least two characters.'
-                                    : null),
-                          TextFormField(
-                              controller: email,
-                              enabled: !busy,
-                              keyboardType: TextInputType.emailAddress,
-                              autofillHints: const [AutofillHints.email],
-                              autocorrect: false,
-                              decoration:
-                                  const InputDecoration(labelText: 'Email'),
-                              validator: (v) =>
-                                  RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
-                                          .hasMatch(v?.trim() ?? '')
+        backgroundColor: Colors.white,
+        appBar: AppBar(backgroundColor: Colors.white, toolbarHeight: 44),
+        body: Theme(
+            data: Theme.of(context).copyWith(
+                inputDecorationTheme: InputDecorationTheme(
+              filled: true,
+              fillColor: const Color(0xfff0f5fc),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none),
+              enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none),
+            )),
+            child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: AutofillGroup(
+                    child: Form(
+                        key: form,
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const SizedBox(height: 12),
+                              const Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: ZitaWordmark()),
+                              const SizedBox(height: 48),
+                              Text(register ? 'Create account' : 'Welcome back',
+                                  style: const TextStyle(
+                                      fontSize: 30,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xff123b70))),
+                              const SizedBox(height: 8),
+                              Text(
+                                  register
+                                      ? 'Big ideas start with your next read.'
+                                      : 'Sign in to continue reading',
+                                  style: const TextStyle(
+                                      fontSize: 15, color: Color(0xff6b7280))),
+                              const SizedBox(height: 36),
+                              if (register)
+                                TextFormField(
+                                    controller: name,
+                                    enabled: !busy,
+                                    autofillHints: const [AutofillHints.name],
+                                    decoration: const InputDecoration(
+                                        labelText: 'Display name'),
+                                    maxLength: 50,
+                                    validator: (v) =>
+                                        (v?.trim().length ?? 0) < 2
+                                            ? 'Enter at least two characters.'
+                                            : null),
+                              TextFormField(
+                                  controller: email,
+                                  enabled: !busy,
+                                  keyboardType: TextInputType.emailAddress,
+                                  autofillHints: const [AutofillHints.email],
+                                  autocorrect: false,
+                                  decoration:
+                                      const InputDecoration(labelText: 'Email'),
+                                  validator: (v) =>
+                                      RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+                                              .hasMatch(v?.trim() ?? '')
+                                          ? null
+                                          : 'Enter a valid email.'),
+                              const SizedBox(height: 16),
+                              TextFormField(
+                                  controller: password,
+                                  enabled: !busy,
+                                  obscureText: hidden,
+                                  maxLength: 128,
+                                  autofillHints: [
+                                    register
+                                        ? AutofillHints.newPassword
+                                        : AutofillHints.password
+                                  ],
+                                  decoration: InputDecoration(
+                                      labelText: 'Password',
+                                      counterText: '',
+                                      suffixIcon: IconButton(
+                                          tooltip: hidden
+                                              ? 'Show password'
+                                              : 'Hide password',
+                                          onPressed: () => setState(() {
+                                                hidden = !hidden;
+                                              }),
+                                          icon: Icon(hidden
+                                              ? Icons.visibility
+                                              : Icons.visibility_off))),
+                                  validator: (v) => (v?.length ?? 0) <
+                                          (register ? 8 : 1)
+                                      ? 'Enter ${register ? 'at least eight characters' : 'your password'}.'
+                                      : null),
+                              if (error != null)
+                                Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 16),
+                                    child: Text(error.toString(),
+                                        style: TextStyle(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .error))),
+                              Align(
+                                  alignment: Alignment.centerRight,
+                                  child: TextButton(
+                                      onPressed: busy
+                                          ? null
+                                          : () => Navigator.of(context).push(
+                                              MaterialPageRoute(
+                                                  builder: (_) =>
+                                                      RecoveryScreen(
+                                                          api: widget.api,
+                                                          initialEmail:
+                                                              email.text))),
+                                      child:
+                                          const Text('Forgot your password?'))),
+                              const SizedBox(height: 24),
+                              FilledButton(
+                                  style: FilledButton.styleFrom(
+                                      minimumSize: const Size.fromHeight(52),
+                                      backgroundColor: const Color(0xff123b70),
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12))),
+                                  onPressed: busy ? null : submit,
+                                  child: Text(busy
+                                      ? 'Please wait…'
+                                      : register
+                                          ? 'Create account'
+                                          : 'Sign in')),
+                              TextButton(
+                                  onPressed: busy
                                       ? null
-                                      : 'Enter a valid email.'),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                              controller: password,
-                              enabled: !busy,
-                              obscureText: hidden,
-                              maxLength: 128,
-                              autofillHints: [
-                                register
-                                    ? AutofillHints.newPassword
-                                    : AutofillHints.password
-                              ],
-                              decoration: InputDecoration(
-                                  labelText: 'Password',
-                                  suffixIcon: IconButton(
-                                      tooltip: hidden
-                                          ? 'Show password'
-                                          : 'Hide password',
-                                      onPressed: () => setState(() {
-                                            hidden = !hidden;
+                                      : () => setState(() {
+                                            register = !register;
+                                            error = null;
                                           }),
-                                      icon: Icon(hidden
-                                          ? Icons.visibility
-                                          : Icons.visibility_off))),
-                              validator: (v) => (v?.length ?? 0) <
-                                      (register ? 8 : 1)
-                                  ? 'Enter ${register ? 'at least eight characters' : 'your password'}.'
-                                  : null),
-                          if (error != null)
-                            Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 16),
-                                child: Text(error.toString(),
-                                    style: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .error))),
-                          const SizedBox(height: 24),
-                          FilledButton(
-                              onPressed: busy ? null : submit,
-                              child: Text(busy
-                                  ? 'Please wait…'
-                                  : register
-                                      ? 'Create account'
-                                      : 'Sign in')),
-                          TextButton(
-                              onPressed: busy
-                                  ? null
-                                  : () => Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                          builder: (_) => RecoveryScreen(
-                                              api: widget.api,
-                                              initialEmail: email.text))),
-                              child: const Text('Forgot your password?')),
-                          TextButton(
-                              onPressed: busy
-                                  ? null
-                                  : () => setState(() {
-                                        register = !register;
-                                        error = null;
-                                      }),
-                              child: Text(register
-                                  ? 'Already have an account? Sign in'
-                                  : 'Create an account')),
-                        ])))),
+                                  child: Text(register
+                                      ? 'Already have an account? Sign in'
+                                      : 'Create an account')),
+                            ]))))),
       );
 }
 
@@ -584,6 +629,7 @@ class _ReaderScreenState extends State<ReaderScreen>
   List<Map<String, dynamic>> chapters = [];
   int chapter = 0;
   double fontSize = 19;
+  bool showLanguage = false, showTextSettings = false;
   String content = '';
   bool loading = true, saving = false;
   Object? error;
@@ -791,7 +837,9 @@ class _ReaderScreenState extends State<ReaderScreen>
   Future<bool> save() async {
     saveTimer?.cancel();
     if (loading || error != null || chapters.isEmpty) return true;
-    final position = scroll.hasClients && scroll.position.maxScrollExtent > 0
+    final position = scroll.hasClients &&
+            scroll.position.hasContentDimensions &&
+            scroll.position.maxScrollExtent > 0
         ? (scroll.offset / scroll.position.maxScrollExtent).clamp(0, 1)
         : 0.0;
     final index = chapters[chapter]['chapterIndex'];
@@ -835,7 +883,9 @@ class _ReaderScreenState extends State<ReaderScreen>
   }
 
   Future<void> changeLanguage(String next) async {
-    final position = scroll.hasClients && scroll.position.maxScrollExtent > 0
+    final position = scroll.hasClients &&
+            scroll.position.hasContentDimensions &&
+            scroll.position.maxScrollExtent > 0
         ? (scroll.offset / scroll.position.maxScrollExtent).clamp(0.0, 1.0)
         : 0.0;
     if (!await save() || !mounted) return;
@@ -850,38 +900,67 @@ class _ReaderScreenState extends State<ReaderScreen>
         if (!didPop) unawaited(leave());
       },
       child: Scaffold(
-        appBar: AppBar(title: Text(widget.book['title'] as String), actions: [
-          IconButton(
-              tooltip: 'Smaller text',
-              onPressed: fontSize <= 15
-                  ? null
-                  : () => setState(() {
-                        fontSize -= 2;
-                      }),
-              icon: const Icon(Icons.text_decrease)),
-          IconButton(
-              tooltip: 'Larger text',
-              onPressed: fontSize >= 31
-                  ? null
-                  : () => setState(() {
-                        fontSize += 2;
-                      }),
-              icon: const Icon(Icons.text_increase)),
-          IconButton(
-              tooltip: 'Save reading position',
-              onPressed: loading || saving
-                  ? null
-                  : () async {
-                      if (await save() && context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Reading position saved.')));
-                      }
-                    },
-              icon: const Icon(Icons.bookmark_border)),
-        ]),
+        backgroundColor: const Color(0xfff5f9ff),
+        appBar: AppBar(
+            backgroundColor: const Color(0xfff5f9ff),
+            titleSpacing: 0,
+            title:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(widget.book['title'] as String,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.w600)),
+              if (chapters.isNotEmpty)
+                Text('Chapter ${chapter + 1} of ${chapters.length}',
+                    style: const TextStyle(
+                        fontSize: 11, color: Color(0xff54708e))),
+            ]),
+            actions: [
+              IconButton(
+                  tooltip: 'Translate',
+                  onPressed: () => setState(() => showLanguage = !showLanguage),
+                  icon: const Icon(Icons.translate, size: 21)),
+              IconButton(
+                  tooltip: 'Text settings',
+                  onPressed: () =>
+                      setState(() => showTextSettings = !showTextSettings),
+                  icon: const Text('Aa', style: TextStyle(fontSize: 18))),
+              IconButton(
+                  tooltip: 'Community',
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => CommunityScreen(api: widget.api))),
+                  icon: const Icon(Icons.chat_bubble_outline, size: 21)),
+            ]),
         body: Column(children: [
-          if (chapters.isNotEmpty && widget.api.signedIn)
+          if (showTextSettings)
+            Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
+              IconButton(
+                  tooltip: 'Smaller text',
+                  onPressed: fontSize <= 15
+                      ? null
+                      : () => setState(() => fontSize -= 2),
+                  icon: const Icon(Icons.text_decrease)),
+              IconButton(
+                  tooltip: 'Larger text',
+                  onPressed: fontSize >= 31
+                      ? null
+                      : () => setState(() => fontSize += 2),
+                  icon: const Icon(Icons.text_increase)),
+              TextButton.icon(
+                  onPressed: loading || saving
+                      ? null
+                      : () async {
+                          if (await save() && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text('Reading position saved.')));
+                          }
+                        },
+                  icon: const Icon(Icons.bookmark_border),
+                  label: const Text('Save reading position')),
+            ]),
+          if (showLanguage && chapters.isNotEmpty && widget.api.signedIn)
             Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -974,10 +1053,6 @@ class _ReaderScreenState extends State<ReaderScreen>
                                         .textTheme
                                         .headlineSmall),
                                 const SizedBox(height: 24),
-                                ListenControls(
-                                    key: ValueKey('$chapter-$language'),
-                                    text: content,
-                                    language: language),
                                 if (language != originalLanguage)
                                   const Text('Machine translation'),
                                 const SizedBox(height: 16),
@@ -986,30 +1061,64 @@ class _ReaderScreenState extends State<ReaderScreen>
                                         ? TextDirection.rtl
                                         : TextDirection.ltr,
                                     style: TextStyle(
-                                        fontSize: fontSize, height: 1.75)),
+                                        fontSize: fontSize,
+                                        height: 1.85,
+                                        color: const Color(0xff233b56))),
                               ]))),
         ]),
         bottomNavigationBar: SafeArea(
             child: Padding(
                 padding: const EdgeInsets.all(12),
-                child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      TextButton(
-                          onPressed: loading || saving || chapter == 0
-                              ? null
-                              : () => move(-1),
-                          child: const Text('Previous')),
-                      Text(chapters.isEmpty
-                          ? ''
-                          : '${chapter + 1} / ${chapters.length}'),
-                      TextButton(
-                          onPressed: loading ||
-                                  saving ||
-                                  chapter >= chapters.length - 1
-                              ? null
-                              : () => move(1),
-                          child: const Text('Next')),
-                    ]))),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  if (!loading &&
+                      error == null &&
+                      widget.api.signedIn &&
+                      chapters.isNotEmpty) ...[
+                    AnimatedBuilder(
+                        animation: scroll,
+                        builder: (context, _) => LinearProgressIndicator(
+                              minHeight: 3,
+                              value: ((chapter +
+                                          (scroll.hasClients &&
+                                                  scroll.position
+                                                      .hasContentDimensions &&
+                                                  scroll.position
+                                                          .maxScrollExtent >
+                                                      0
+                                              ? (scroll.offset /
+                                                      scroll.position
+                                                          .maxScrollExtent)
+                                                  .clamp(0.0, 1.0)
+                                              : 0)) /
+                                      chapters.length)
+                                  .clamp(0.0, 1.0),
+                              semanticsLabel: 'Book reading progress',
+                            )),
+                    const SizedBox(height: 10),
+                    ListenControls(
+                        key: ValueKey('$chapter-$language'),
+                        text: content,
+                        language: language),
+                  ],
+                  Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        TextButton(
+                            onPressed: loading || saving || chapter == 0
+                                ? null
+                                : () => move(-1),
+                            child: const Text('Previous')),
+                        Text(chapters.isEmpty
+                            ? ''
+                            : '${chapter + 1} / ${chapters.length}'),
+                        TextButton(
+                            onPressed: loading ||
+                                    saving ||
+                                    chapter >= chapters.length - 1
+                                ? null
+                                : () => move(1),
+                            child: const Text('Next')),
+                      ])
+                ]))),
       ));
 }

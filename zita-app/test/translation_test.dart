@@ -42,6 +42,10 @@ Future<ZitaApi> translatedApi(
 
 Future<void> choose(WidgetTester tester, String name,
     {bool settle = true}) async {
+  if (find.byType(DropdownButtonFormField<String>).evaluate().isEmpty) {
+    await tester.tap(find.byTooltip('Translate'));
+    await tester.pumpAndSettle();
+  }
   await tester.tap(find.byType(DropdownButtonFormField<String>));
   await tester.pumpAndSettle();
   await tester.ensureVisible(find.text(name).last);

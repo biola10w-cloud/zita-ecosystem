@@ -38,6 +38,16 @@ class ZitaApp extends StatelessWidget {
               secondaryContainer: const Color(0xffdff2fc),
               onSecondaryContainer: const Color(0xff174965),
             ),
+            cardTheme: CardThemeData(
+                color: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    side: const BorderSide(color: Color(0xffe7eef8)))),
+            navigationBarTheme: const NavigationBarThemeData(
+                backgroundColor: Colors.white,
+                indicatorColor: Color(0xffdff2fc),
+                height: 68),
             scaffoldBackgroundColor: const Color(0xfff6f8fb)),
         home: MobileShell(api: api),
       );

@@ -227,7 +227,9 @@ class _ReadingHomeState extends State<ReadingHome> {
     final featured = list('featured');
     final trending = list('trending');
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
+          backgroundColor: Colors.white,
           title: widget.collectionOnly
               ? const Text('My library')
               : const FittedBox(fit: BoxFit.scaleDown, child: ZitaWordmark()),
@@ -265,6 +267,11 @@ class _ReadingHomeState extends State<ReadingHome> {
                             }
                           },
                           icon: const Icon(Icons.grid_view),
+                          style: OutlinedButton.styleFrom(
+                              backgroundColor: const Color(0xfff0f5fc),
+                              side: BorderSide.none,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12))),
                           label: const Text('Browse by category')),
                       if (errors.containsKey('categories'))
                         failure('categories'),
@@ -381,7 +388,7 @@ class _ReadingHomeState extends State<ReadingHome> {
                                     Color(0xff102c53),
                                     Color(0xff245eaa)
                                   ]),
-                                  borderRadius: BorderRadius.circular(24)),
+                                  borderRadius: BorderRadius.circular(18)),
                               child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [

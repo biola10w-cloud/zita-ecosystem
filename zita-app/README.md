@@ -245,3 +245,18 @@ empty collections do not display sample books or invented statistics.
 
 Validation: Flutter analysis and 40 tests pass, including category navigation,
 library progress, logout clearing private progress, and tester access display.
+
+### Phase 2 screen interfaces (1.0.5+6)
+
+Login uses the preview's logo-led welcome layout, filled rounded fields and
+full-width sign-in action. Home keeps the four-tab catalogue structure with
+white surfaces, blue category controls and softer cards. The reader uses a
+compact title/chapter toolbar, translation and text settings panels, and a
+fixed progress/narration dock. Community uses avatar rows, indented replies,
+header sorting and a fixed composer for its global discussion feed.
+
+The public introduction, real catalogue, authentication, tester allowlist,
+progress saving, translation, narration, posting and moderation remain wired
+to the existing services. No preview sample books or discussions are seeded.
+All 41 tests pass; narrow-phone checks include stationary reader controls and
+a reachable composer. Rendered previews use test fixtures, not live user data.

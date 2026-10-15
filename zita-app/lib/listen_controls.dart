@@ -138,30 +138,35 @@ class _ListenControlsState extends State<ListenControls>
   }
 
   @override
-  Widget build(BuildContext context) =>
-      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Wrap(
-            spacing: 12,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              FilledButton.tonalIcon(
-                  onPressed: playing ? stop : listen,
-                  icon: Icon(playing ? Icons.stop : Icons.volume_up_outlined),
-                  label:
-                      Text(playing ? 'Stop listening' : 'Listen to chapter')),
-              DropdownButton<double>(
-                  value: rate,
-                  onChanged:
-                      playing ? null : (value) => setState(() => rate = value!),
-                  hint: const Text('Voice speed'),
-                  items: const [
-                    DropdownMenuItem(value: .35, child: Text('Slower')),
-                    DropdownMenuItem(value: .5, child: Text('Normal speed')),
-                    DropdownMenuItem(value: .65, child: Text('Faster'))
-                  ]),
-            ]),
-        if (error != null)
-          Text(error!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error)),
-      ]);
+  Widget build(BuildContext context) => Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Wrap(
+                spacing: 12,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  FilledButton.tonalIcon(
+                      onPressed: playing ? stop : listen,
+                      icon:
+                          Icon(playing ? Icons.stop : Icons.volume_up_outlined),
+                      label: Text(
+                          playing ? 'Stop listening' : 'Listen to chapter')),
+                  DropdownButton<double>(
+                      value: rate,
+                      onChanged: playing
+                          ? null
+                          : (value) => setState(() => rate = value!),
+                      hint: const Text('Voice speed'),
+                      items: const [
+                        DropdownMenuItem(value: .35, child: Text('Slower')),
+                        DropdownMenuItem(
+                            value: .5, child: Text('Normal speed')),
+                        DropdownMenuItem(value: .65, child: Text('Faster'))
+                      ]),
+                ]),
+            if (error != null)
+              Text(error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error)),
+          ]);
 }

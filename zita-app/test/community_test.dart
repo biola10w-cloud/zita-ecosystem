@@ -45,7 +45,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Community'));
     await tester.pumpAndSettle();
-    expect(find.text('Good books. Great conversations.'), findsOneWidget);
+    expect(find.text('Community'), findsOneWidget);
+    expect(find.byTooltip('Sort discussions'), findsOneWidget);
     expect(
         find.text('No discussions yet. Start a conversation about any book.'),
         findsOneWidget);
@@ -77,12 +78,12 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: CommunityScreen(api: api)));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'A new discussion');
-    await tester.tap(find.text('Post discussion'));
+    await tester.tap(find.byTooltip('Post discussion'));
     await tester.pumpAndSettle();
     expect(find.text('Try later'), findsOneWidget);
     expect(tester.widget<TextField>(find.byType(TextField)).controller!.text,
         'A new discussion');
-    await tester.tap(find.text('Post discussion'));
+    await tester.tap(find.byTooltip('Post discussion'));
     await tester.pumpAndSettle();
     expect(
         tester.widget<TextField>(find.byType(TextField)).controller!.text, '');
@@ -127,7 +128,7 @@ void main() {
     await tester.tap(find.text('Replies · 1'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'My reply');
-    await tester.tap(find.text('Post reply'));
+    await tester.tap(find.byTooltip('Post reply'));
     await tester.pumpAndSettle();
     expect(writes, [
       'POST /api/v1/comments/post-id/like',

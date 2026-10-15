@@ -178,13 +178,50 @@ class _CommunityScreenState extends State<CommunityScreen> {
     }
   }
 
-  Widget card(Map<String, dynamic> post, {bool actions = true}) => Card(
+  String postDate(dynamic value) {
+    final date = DateTime.tryParse('$value')?.toLocal();
+    if (date == null) return '';
+    final age = DateTime.now().difference(date);
+    if (age.inMinutes < 1) return 'Just now';
+    if (age.inHours < 1) return '${age.inMinutes} min ago';
+    if (age.inDays < 1) return '${age.inHours} hr ago';
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+  Widget card(Map<String, dynamic> post, {bool actions = true}) => Container(
+        decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(bottom: BorderSide(color: Color(0xffe8eff8)))),
         child: Padding(
             padding: const EdgeInsets.all(16),
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(post['user']?['displayName'] as String? ?? 'Reader',
-                  style: Theme.of(context).textTheme.titleMedium),
+              Row(children: [
+                CircleAvatar(
+                    radius: 18,
+                    backgroundColor: const Color(0xffdff2fc),
+                    child: Text(
+                        (post['user']?['displayName'] as String? ?? 'Reader')
+                                .characters
+                                .firstOrNull
+                                ?.toUpperCase() ??
+                            'R')),
+                const SizedBox(width: 10),
+                Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                      Text(post['user']?['displayName'] as String? ?? 'Reader',
+                          style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xff123b70))),
+                      if (post['createdAt'] != null)
+                        Text(postDate(post['createdAt']),
+                            style: const TextStyle(
+                                fontSize: 11, color: Color(0xff6b7280))),
+                    ])),
+              ]),
               const SizedBox(height: 8),
               Text(post['body'] as String? ?? '',
                   style: const TextStyle(height: 1.5)),
@@ -225,82 +262,104 @@ class _CommunityScreenState extends State<CommunityScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar:
-            AppBar(title: Text(replies ? 'Discussion' : 'Community'), actions: [
-          if (widget.api.signedIn)
-            IconButton(
-                tooltip: 'Blocked readers',
-                icon: const Icon(Icons.person_off_outlined),
-                onPressed: () async {
-                  await Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => BlockedReadersScreen(api: widget.api)));
-                  if (mounted) load(reset: true);
-                }),
-        ]),
+        appBar: AppBar(
+            centerTitle: true,
+            backgroundColor: Colors.white,
+            title: Text(replies ? 'Discussion' : 'Community',
+                style:
+                    const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+            actions: [
+              if (!replies)
+                PopupMenuButton<String>(
+                  tooltip: 'Sort discussions',
+                  icon: const Icon(Icons.swap_vert),
+                  initialValue: sort,
+                  onSelected: (value) {
+                    setState(() => sort = value);
+                    load(reset: true);
+                  },
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(value: 'recent', child: Text('Recent')),
+                    PopupMenuItem(value: 'popular', child: Text('Popular'))
+                  ],
+                ),
+              if (widget.api.signedIn)
+                IconButton(
+                    tooltip: 'Blocked readers',
+                    icon: const Icon(Icons.person_off_outlined),
+                    onPressed: () async {
+                      await Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) =>
+                              BlockedReadersScreen(api: widget.api)));
+                      if (mounted) load(reset: true);
+                    }),
+            ]),
+        backgroundColor: Colors.white,
+        bottomNavigationBar: SafeArea(
+            child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                    16, 10, 16, 10 + MediaQuery.viewInsetsOf(context).bottom),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  if (postError != null)
+                    Text('$postError',
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.error)),
+                  if (widget.api.signedIn)
+                    Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                      Expanded(
+                          child: TextField(
+                              controller: draft,
+                              enabled: !posting,
+                              minLines: 1,
+                              maxLines: 4,
+                              maxLength: 2000,
+                              decoration: InputDecoration(
+                                  hintText: replies
+                                      ? 'Write a reply'
+                                      : 'Share your thoughts...',
+                                  counterText: '',
+                                  filled: true,
+                                  fillColor: const Color(0xfff0f5fc),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 12),
+                                  border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(24),
+                                      borderSide: BorderSide.none)))),
+                      const SizedBox(width: 8),
+                      IconButton.filled(
+                          tooltip: replies ? 'Post reply' : 'Post discussion',
+                          onPressed: posting ? null : submit,
+                          icon: posting
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2))
+                              : const Icon(Icons.send_rounded)),
+                    ])
+                  else
+                    TextButton(
+                        onPressed: signIn,
+                        child: const Text('Sign in to join the conversation')),
+                ]))),
         body: RefreshIndicator(
             onRefresh: () => load(reset: true),
             child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.symmetric(vertical: 12),
                 children: [
-                  if (replies)
-                    card(widget.parent!, actions: false)
-                  else ...[
-                    Text('Good books. Great conversations.',
-                        style: Theme.of(context).textTheme.headlineMedium),
-                    const SizedBox(height: 8),
-                    const Text(
-                        'Talk about any book, share ideas, and meet other readers. Be respectful and mark spoilers.'),
-                  ],
-                  const SizedBox(height: 20),
-                  if (widget.api.signedIn) ...[
-                    TextField(
-                        controller: draft,
-                        enabled: !posting,
-                        minLines: 2,
-                        maxLines: 5,
-                        maxLength: 2000,
-                        decoration: InputDecoration(
-                            border: const OutlineInputBorder(),
-                            labelText: replies
-                                ? 'Write a reply'
-                                : 'Start a discussion')),
-                    if (postError != null)
-                      Text('$postError',
-                          style: TextStyle(
-                              color: Theme.of(context).colorScheme.error)),
-                    FilledButton(
-                        onPressed: posting ? null : submit,
-                        child: Text(posting
-                            ? 'Posting...'
-                            : replies
-                                ? 'Post reply'
-                                : 'Post discussion')),
-                  ] else
-                    TextButton(
-                        onPressed: signIn,
-                        child: const Text('Sign in to join the conversation')),
-                  const SizedBox(height: 16),
-                  if (!replies)
-                    SegmentedButton<String>(
-                        segments: const [
-                          ButtonSegment(value: 'recent', label: Text('Recent')),
-                          ButtonSegment(
-                              value: 'popular', label: Text('Popular')),
-                        ],
-                        selected: {
-                          sort
-                        },
-                        onSelectionChanged: (values) {
-                          setState(() {
-                            sort = values.single;
-                            posts.clear();
-                            page = 1;
-                          });
-                          load(reset: true);
-                        }),
-                  const SizedBox(height: 16),
-                  for (final post in posts) card(post),
+                  if (replies) card(widget.parent!, actions: false),
+                  for (final post in posts)
+                    if (replies)
+                      Container(
+                          margin: const EdgeInsets.only(left: 42),
+                          decoration: const BoxDecoration(
+                              border: Border(
+                                  left: BorderSide(
+                                      color: Color(0xffdbeafe), width: 2))),
+                          child: card(post))
+                    else
+                      card(post),
                   if (feedError != null)
                     RetryView(
                         error: feedError!,
