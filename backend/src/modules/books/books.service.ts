@@ -1,5 +1,6 @@
 import { prisma } from '../../shared/db/prisma';
 import { Prisma } from '@prisma/client';
+import { readingTestAccess } from './reading-access';
 import { categoryFilter, categorySelection, flattenCategories } from './book-categories';
 
 export interface BooksQuery {
@@ -86,7 +87,7 @@ export class BooksService {
     // Featured = published, premium, ordered by a combination of
     // recency and like count. In production this could be a manual
     // editorial selection stored in a FeaturedBook table.
-    return prisma.book.findMany({
+    const books = await prisma.book.findMany({
       where: { isPublished: true },
       orderBy: [
         { likes: { _count: 'desc' } },
@@ -106,6 +107,7 @@ export class BooksService {
         _count: { select: { likes: true } },
       },
     });
+    return books;
   }
 
   // â”€â”€â”€ Trending books â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -134,7 +136,7 @@ export class BooksService {
 
     const ids = topBookIds.map((b) => b.bookId!);
 
-    return prisma.book.findMany({
+    const books = await prisma.book.findMany({
       where: { id: { in: ids }, isPublished: true },
       select: {
         id: true,
@@ -149,6 +151,7 @@ export class BooksService {
         _count: { select: { likes: true } },
       },
     });
+    return books;
   }
 
   // Categories
@@ -249,6 +252,7 @@ export class BooksService {
     ]);
 
     if (!book || !book.isPublished) return { hasAccess: false, reason: 'BOOK_NOT_FOUND' };
+    if (await readingTestAccess(userId)) return { hasAccess: true, reason: 'TEST_ACCESS' };
     if (!book.isPremium) return { hasAccess: true, reason: 'FREE' };
     if (purchase) return { hasAccess: true, reason: 'PURCHASED' };
 
