@@ -1,14 +1,17 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../shared/db/prisma';
+import { BlocksService } from '../users/blocks.service';
 
 export interface CreateCommentInput {
   userId:   string;
-  bookSlug: string;
+  bookSlug?: string;
   body:     string;
   parentId?: string;
 }
 
 export interface ListCommentsQuery {
-  bookSlug: string;
+  userId?: string;
+  bookSlug?: string;
   page:     number;
   limit:    number;
   sort:     'recent' | 'popular';
@@ -20,23 +23,26 @@ export class CommunityService {
   static async listComments(query: ListCommentsQuery) {
     const { bookSlug, page, limit, sort } = query;
     const skip = (page - 1) * limit;
+    const excluded = await BlocksService.excludedIds(query.userId);
+    const visibleUsers = excluded.length ? { userId: { notIn: excluded } } : {};
 
-    const book = await prisma.book.findUniqueOrThrow({
-      where: { slug: bookSlug },
-      select: { id: true },
-    });
+    const book = bookSlug ? await prisma.book.findFirst({
+      where: { slug: bookSlug, isPublished: true }, select: { id: true },
+    }) : null;
+    if (bookSlug && !book) throw Object.assign(new Error('Book not found'), { statusCode: 404 });
 
+    const where: Prisma.CommentWhereInput = {
+      parentId: null, isDeleted: false,
+      ...visibleUsers,
+      ...(book ? { bookId: book.id } : { OR: [{ bookId: null }, { book: { isPublished: true } }] }),
+    };
     const orderBy = sort === 'popular'
       ? [{ likes: { _count: 'desc' as const } }, { createdAt: 'desc' as const }]
       : [{ createdAt: 'desc' as const }];
 
     const [comments, total] = await Promise.all([
       prisma.comment.findMany({
-        where: {
-          bookId:    book.id,
-          parentId:  null,       // Top-level only
-          isDeleted: false,
-        },
+        where,
         skip,
         take: limit,
         orderBy,
@@ -50,7 +56,7 @@ export class CommunityService {
           },
           // Include first 3 replies inline
           replies: {
-            where: { isDeleted: false },
+            where: { isDeleted: false, ...visibleUsers },
             take: 3,
             orderBy: { createdAt: 'asc' },
             include: {
@@ -70,7 +76,7 @@ export class CommunityService {
         },
       }),
       prisma.comment.count({
-        where: { bookId: book.id, parentId: null, isDeleted: false },
+        where,
       }),
     ]);
 
@@ -99,21 +105,26 @@ export class CommunityService {
       throw err;
     }
 
-    const book = await prisma.book.findUniqueOrThrow({
-      where: { slug: bookSlug },
-      select: { id: true },
-    });
+    const book = bookSlug ? await prisma.book.findFirst({
+      where: { slug: bookSlug, isPublished: true }, select: { id: true },
+    }) : null;
+    if (bookSlug && !book) throw Object.assign(new Error('Book not found'), { statusCode: 404 });
 
     // If a parentId is provided, validate it exists and belongs to this book
     let parentAuthorId: string | null = null;
+    let bookId = book?.id ?? null;
     if (parentId) {
       const parent = await prisma.comment.findFirst({
-        where: { id: parentId, bookId: book.id, isDeleted: false },
+        where: { id: parentId, isDeleted: false, ...(book ? { bookId: book.id } : { OR: [{ bookId: null }, { book: { isPublished: true } }] }) },
       });
       if (!parent) {
         const err: any = new Error('Parent comment not found');
         err.statusCode = 404;
         throw err;
+      }
+      const excluded = await BlocksService.excludedIds(userId);
+      if (excluded.includes(parent.userId)) {
+        throw Object.assign(new Error('This discussion is unavailable.'), { statusCode: 403 });
       }
       // Prevent deep nesting — only one level of replies
       if (parent.parentId !== null) {
@@ -123,12 +134,13 @@ export class CommunityService {
         throw err;
       }
       parentAuthorId = parent.userId;
+      bookId = parent.bookId;
     }
 
     const comment = await prisma.comment.create({
       data: {
         userId,
-        bookId: book.id,
+        bookId,
         body: body.trim(),
         parentId,
       },
@@ -146,7 +158,7 @@ export class CommunityService {
         parentAuthorId,
         'New reply on your comment',
         `${comment.user.displayName}: ${comment.body.slice(0, 100)}`,
-        { bookSlug, commentId: comment.id },
+        { ...(bookSlug ? { bookSlug } : { screen: 'community' }), commentId: comment.id },
       ).catch(() => {});
     }
 
@@ -212,6 +224,12 @@ export class CommunityService {
   // â”€â”€â”€ Like / unlike comment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   static async likeComment(commentId: string, userId: string) {
+    const excluded = await BlocksService.excludedIds(userId);
+    const comment = await prisma.comment.findFirst({ where: {
+      id: commentId, isDeleted: false, userId: { notIn: excluded },
+      OR: [{ bookId: null }, { book: { isPublished: true } }],
+    }, select: { id: true } });
+    if (!comment) throw Object.assign(new Error('This discussion is unavailable.'), { statusCode: 404 });
     await prisma.commentLike.upsert({
       where: { userId_commentId: { userId, commentId } },
       create: { userId, commentId },
@@ -256,12 +274,19 @@ export class CommunityService {
 
   // â”€â”€â”€ Get replies for a comment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-  static async getReplies(parentId: string, page: number, limit: number) {
+  static async getReplies(parentId: string, page: number, limit: number, userId?: string) {
     const skip = (page - 1) * limit;
+    const excluded = await BlocksService.excludedIds(userId);
+    const visibleUsers = excluded.length ? { userId: { notIn: excluded } } : {};
+    const parent = await prisma.comment.findFirst({ where: {
+      id: parentId, isDeleted: false, ...visibleUsers,
+      OR: [{ bookId: null }, { book: { isPublished: true } }],
+    }, select: { id: true } });
+    if (!parent) throw Object.assign(new Error('This discussion is unavailable.'), { statusCode: 404 });
 
     const [replies, total] = await Promise.all([
       prisma.comment.findMany({
-        where: { parentId, isDeleted: false },
+        where: { parentId, isDeleted: false, ...visibleUsers },
         skip,
         take: limit,
         orderBy: { createdAt: 'asc' },
@@ -272,7 +297,7 @@ export class CommunityService {
           _count: { select: { likes: true } },
         },
       }),
-      prisma.comment.count({ where: { parentId, isDeleted: false } }),
+      prisma.comment.count({ where: { parentId, isDeleted: false, ...visibleUsers } }),
     ]);
 
     return {

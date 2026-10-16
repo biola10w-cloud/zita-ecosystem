@@ -86,7 +86,7 @@ export const AuthController = {
 
   async logout(request: FastifyRequest, reply: FastifyReply) {
     const user = request.user!;
-    await AuthService.logout(user.sub, user.deviceId);
+    await AuthService.logout(user.sub, user.deviceId, user.sid);
 
     return reply.send({ success: true, data: null });
   },

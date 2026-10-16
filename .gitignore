@@ -4,6 +4,8 @@ node_modules/
 dist/
 build/
 coverage/
+playwright-report/
+test-results/
 *.log
 .DS_Store
 .vscode/
@@ -14,3 +16,8 @@ coverage/
 backend/keys/
 *.pem
 *.key
+files.zip
+.release-secrets/
+release-artifacts/
+*.p12
+*.pfx

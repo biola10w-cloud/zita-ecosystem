@@ -10,6 +10,7 @@ export async function readerRoutes(app: FastifyInstance) {
 
   // GET /api/v1/books/:slug/chapters/:index/content
   app.get('/:slug/chapters/:index/content', heavy, ReaderController.getChapterContent);
+  app.post('/:slug/translations', heavy, ReaderController.requestTranslation);
 
   // GET /api/v1/books/:slug/chapters/:index/audio — "listen to the book"
   app.get('/:slug/chapters/:index/audio', heavy, ReaderController.getChapterAudio);
