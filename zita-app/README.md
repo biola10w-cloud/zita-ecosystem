@@ -260,3 +260,24 @@ progress saving, translation, narration, posting and moderation remain wired
 to the existing services. No preview sample books or discussions are seeded.
 All 41 tests pass; narrow-phone checks include stationary reader controls and
 a reachable composer. Rendered previews use test fixtures, not live user data.
+
+### Public home and continuous narration (1.0.6+7)
+
+Signed-out visitors now use the same Phase 2 home shell and category/featured/
+Trending layout, with a compact book-summary introduction and sign-in/register
+actions. Personal reading progress remains restricted to signed-in readers.
+
+Narration supports Pause/Resume at the last reported word, Stop, installed voice
+selection and an explicitly labelled lower-pitched male-style preset. Android
+voice metadata does not reliably identify gender; the preset adjusts pitch and
+does not claim to install a new male voice. Actual voices depend on the device.
+Narration reads all text chunks, saves completed chapters, advances automatically
+and stops at book end. Settings persist across chapters. Manual chapter/language
+changes, access failures and backgrounding cancel automatic continuation.
+Backgrounding pauses current speech; this is foreground narration, not a
+background audio service. Devices without word progress may repeat the current
+chunk on resume. Physical-device speech quality/word-offset checks remain with
+testers.
+
+Validation: all 44 tests pass, covering resume offsets, lower-pitch selection,
+complete-book narration, public discovery and existing reading/community flows.

@@ -6,8 +6,63 @@ import 'package:http/http.dart' as http;
 import 'package:zita_app/api.dart';
 import 'package:zita_app/screens.dart';
 import 'api_test.dart' show MemoryStore, ok;
+import 'listen_test.dart' show FakeSpeech;
 
 void main() {
+  testWidgets(
+      'narration automatically reads every chapter and stops at book end',
+      (tester) async {
+    final store = MemoryStore();
+    store.values['zita_session'] =
+        jsonEncode({'accessToken': 'access', 'refreshToken': 'refresh'});
+    final saves = <dynamic>[];
+    final engine = FakeSpeech();
+    final api = ZitaApi(
+        baseUrl: 'https://api.example.com/api/v1',
+        store: store,
+        client: MockClient((r) async {
+          if (r.method == 'POST') {
+            saves.add(jsonDecode(r.body));
+            return ok(null);
+          }
+          if (r.url.path.endsWith('/progress')) return ok(null);
+          if (r.url.path.endsWith('/content')) {
+            return ok({
+              'content': r.url.path.contains('/0/')
+                  ? 'First chapter.'
+                  : 'Last chapter.'
+            });
+          }
+          return ok({
+            'chapters': [
+              {'chapterIndex': 0, 'title': 'First'},
+              {'chapterIndex': 1, 'title': 'Last'}
+            ]
+          });
+        }));
+    await api.restore();
+    await tester.pumpWidget(MaterialApp(
+        home: ReaderScreen(
+            api: api,
+            book: const {'slug': 'demo', 'title': 'Demo'},
+            speechEngine: engine)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Listen to chapter'));
+    await tester.pumpAndSettle();
+    engine.pending!.complete();
+    await tester.pumpAndSettle();
+    expect(engine.chunks, ['First chapter.', 'Last chapter.']);
+    expect(find.text('Last'), findsOneWidget);
+    engine.pending!.complete();
+    await tester.pumpAndSettle();
+    expect(engine.chunks.length, 2);
+    expect(saves.map((x) => x['chapterIndex']), [0, 1]);
+    expect(saves.every((x) => x['scrollPosition'] == 1.0), isTrue);
+    expect(find.text('Listen to chapter'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    api.dispose();
+  });
+
   testWidgets('revoked session clears the chapter when the app resumes',
       (tester) async {
     final store = MemoryStore();

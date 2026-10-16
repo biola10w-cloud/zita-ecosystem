@@ -4,7 +4,9 @@ import 'package:flutter_tts/flutter_tts.dart';
 
 abstract class SpeechEngine {
   Future<bool> prepare(String language, double rate);
-  Future<void> speak(String text);
+  Future<void> speak(String text, {void Function(int start)? onProgress});
+  Future<List<Map<String, String>>> voices(String language) async => [];
+  Future<void> configureVoice(Map<String, String>? voice, double pitch) async {}
   Future<void> stop();
 }
 
@@ -20,9 +22,35 @@ class NativeSpeechEngine implements SpeechEngine {
   }
 
   @override
-  Future<void> speak(String text) async {
+  Future<void> speak(String text,
+      {void Function(int start)? onProgress}) async {
+    tts.setProgressHandler((text, start, end, word) => onProgress?.call(start));
     final result = await tts.speak(text);
     if (result == 0) throw StateError('Speech could not start');
+  }
+
+  @override
+  Future<List<Map<String, String>>> voices(String language) async {
+    final data = await tts.getVoices;
+    return (data as List)
+        .whereType<Map>()
+        .where((v) =>
+            '${v['locale']}'.replaceAll('_', '-').split('-').first ==
+            language.split('-').first)
+        .map((v) => <String, String>{
+              'name': '${v['name']}',
+              'locale': '${v['locale']}',
+              if (v['gender'] != null) 'gender': '${v['gender']}'
+            })
+        .toList();
+  }
+
+  @override
+  Future<void> configureVoice(Map<String, String>? voice, double pitch) async {
+    if (voice != null) {
+      await tts.setVoice({'name': voice['name']!, 'locale': voice['locale']!});
+    }
+    await tts.setPitch(pitch);
   }
 
   @override
@@ -53,11 +81,28 @@ List<String> speechChunks(String text) {
   return result;
 }
 
+class SpeechSettings {
+  double rate = .5;
+  double pitch = 1;
+  Map<String, String>? voice;
+}
+
 class ListenControls extends StatefulWidget {
   const ListenControls(
-      {super.key, required this.text, required this.language, this.engine});
+      {super.key,
+      required this.text,
+      required this.language,
+      this.engine,
+      this.settings,
+      this.autoplay = false,
+      this.onPlaybackChanged,
+      this.onComplete});
   final String text, language;
   final SpeechEngine? engine;
+  final SpeechSettings? settings;
+  final bool autoplay;
+  final ValueChanged<bool>? onPlaybackChanged;
+  final Future<void> Function()? onComplete;
   @override
   State<ListenControls> createState() => _ListenControlsState();
 }
@@ -65,21 +110,37 @@ class ListenControls extends StatefulWidget {
 class _ListenControlsState extends State<ListenControls>
     with WidgetsBindingObserver {
   SpeechEngine? engine;
-  bool playing = false;
+  late final SpeechSettings settings = widget.settings ?? SpeechSettings();
+  bool playing = false, paused = false;
   String? error;
-  double rate = .5;
-  int generation = 0;
+  int generation = 0, chunkIndex = 0, offset = 0;
   Future<void> stopping = Future.value();
+  late List<String> chunks = speechChunks(widget.text);
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    if (widget.autoplay) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(listen());
+      });
+    }
   }
 
-  Future<void> stop() {
+  Future<void> stop({bool pause = false, bool notify = true}) {
     generation++;
-    if (mounted) setState(() => playing = false);
+    if (mounted) {
+      setState(() {
+        playing = false;
+        paused = pause;
+        if (!pause) {
+          chunkIndex = 0;
+          offset = 0;
+        }
+      });
+    }
+    if (notify) widget.onPlaybackChanged?.call(false);
     final active = engine;
     stopping = stopping.then((_) async {
       if (active != null) await active.stop();
@@ -89,7 +150,9 @@ class _ListenControlsState extends State<ListenControls>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed) unawaited(stop());
+    if (state != AppLifecycleState.resumed && playing) {
+      unawaited(stop(pause: true));
+    }
   }
 
   @override
@@ -97,7 +160,8 @@ class _ListenControlsState extends State<ListenControls>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.text != widget.text ||
         oldWidget.language != widget.language) {
-      unawaited(stop());
+      unawaited(stop(notify: false));
+      chunks = speechChunks(widget.text);
     }
   }
 
@@ -110,30 +174,110 @@ class _ListenControlsState extends State<ListenControls>
     super.dispose();
   }
 
+  Future<void> chooseVoice() async {
+    await stop(pause: playing || paused);
+    try {
+      final active = engine ??= widget.engine ?? NativeSpeechEngine();
+      final voices = await active.voices(widget.language);
+      if (!mounted) return;
+      await showModalBottomSheet<void>(
+          context: context,
+          isScrollControlled: true,
+          builder: (context) => SafeArea(
+              child: SizedBox(
+                  height: MediaQuery.sizeOf(context).height * .65,
+                  child: ListView(children: [
+                    const ListTile(
+                        title: Text('Narrator voice'),
+                        subtitle: Text(
+                            'Choose an installed voice, or use a lower-pitched male-style voice. Available voices depend on your device and language.')),
+                    ListTile(
+                        title: const Text('Default voice'),
+                        onTap: () {
+                          settings.voice = null;
+                          settings.pitch = 1;
+                          Navigator.pop(context);
+                        }),
+                    ListTile(
+                        title: const Text('Male-style ? lower pitch'),
+                        subtitle: const Text(
+                            'Uses your device voice with a deeper pitch'),
+                        onTap: () {
+                          settings.voice = null;
+                          settings.pitch = .8;
+                          Navigator.pop(context);
+                        }),
+                    for (final voice in voices)
+                      ListTile(
+                          title: Text(voice['name']!),
+                          subtitle: Text(
+                              '${voice['locale']}${voice['gender'] == null ? '' : ' ? ${voice['gender']}'}'),
+                          onTap: () {
+                            settings.voice = voice;
+                            settings.pitch = 1;
+                            Navigator.pop(context);
+                          }),
+                  ]))));
+      if (mounted) setState(() {});
+    } catch (_) {
+      if (mounted) {
+        setState(() => error =
+            'Voice choices could not load. Check your device speech settings.');
+      }
+    }
+  }
+
   Future<void> listen() async {
     final current = ++generation;
     setState(() {
       playing = true;
+      paused = false;
       error = null;
     });
+    widget.onPlaybackChanged?.call(true);
     try {
       await stopping;
       if (!mounted || current != generation) return;
       final active = engine ??= widget.engine ?? NativeSpeechEngine();
-      final available = await active.prepare(widget.language, rate);
+      if (!await active.prepare(widget.language, settings.rate)) {
+        throw StateError('No voice');
+      }
       if (!mounted || current != generation) return;
-      if (!available) throw StateError('No voice');
-      for (final text in speechChunks(widget.text)) {
+      await active.configureVoice(settings.voice, settings.pitch);
+      if (!mounted || current != generation) return;
+      while (chunkIndex < chunks.length) {
+        final text = chunks[chunkIndex];
+        final base = offset.clamp(0, text.length);
+        await active.speak(text.substring(base), onProgress: (start) {
+          if (mounted && current == generation) {
+            offset = (base + start).clamp(0, text.length);
+          }
+        });
         if (!mounted || current != generation) return;
-        await active.speak(text);
+        chunkIndex++;
+        offset = 0;
+      }
+      if (!mounted || current != generation) return;
+      setState(() {
+        playing = false;
+        paused = false;
+        chunkIndex = 0;
+        offset = 0;
+      });
+      if (widget.onComplete != null) {
+        await widget.onComplete!();
+      } else {
+        widget.onPlaybackChanged?.call(false);
       }
     } catch (_) {
       if (mounted && current == generation) {
-        setState(() => error =
-            'Voice reading is unavailable for this language. Check your device speech settings or choose another language.');
+        widget.onPlaybackChanged?.call(false);
+        setState(() {
+          playing = false;
+          error =
+              'Voice reading is unavailable for this language. Check your device speech settings or choose another voice.';
+        });
       }
-    } finally {
-      if (mounted && current == generation) setState(() => playing = false);
     }
   }
 
@@ -143,20 +287,27 @@ class _ListenControlsState extends State<ListenControls>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Wrap(
-                spacing: 12,
+                spacing: 8,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   FilledButton.tonalIcon(
-                      onPressed: playing ? stop : listen,
-                      icon:
-                          Icon(playing ? Icons.stop : Icons.volume_up_outlined),
-                      label: Text(
-                          playing ? 'Stop listening' : 'Listen to chapter')),
+                      onPressed: playing ? () => stop(pause: true) : listen,
+                      icon: Icon(playing ? Icons.pause : Icons.play_arrow),
+                      label: Text(playing
+                          ? 'Pause'
+                          : paused
+                              ? 'Resume'
+                              : 'Listen to chapter')),
+                  if (playing || paused)
+                    IconButton(
+                        tooltip: 'Stop listening',
+                        onPressed: stop,
+                        icon: const Icon(Icons.stop)),
                   DropdownButton<double>(
-                      value: rate,
+                      value: settings.rate,
                       onChanged: playing
                           ? null
-                          : (value) => setState(() => rate = value!),
+                          : (value) => setState(() => settings.rate = value!),
                       hint: const Text('Voice speed'),
                       items: const [
                         DropdownMenuItem(value: .35, child: Text('Slower')),
@@ -164,6 +315,11 @@ class _ListenControlsState extends State<ListenControls>
                             value: .5, child: Text('Normal speed')),
                         DropdownMenuItem(value: .65, child: Text('Faster'))
                       ]),
+                  TextButton.icon(
+                      onPressed: chooseVoice,
+                      icon: const Icon(Icons.record_voice_over),
+                      label: Text(
+                          settings.pitch < 1 ? 'Male-style voice' : 'Voice')),
                 ]),
             if (error != null)
               Text(error!,

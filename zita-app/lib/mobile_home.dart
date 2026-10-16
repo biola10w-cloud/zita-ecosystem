@@ -48,16 +48,14 @@ class _MobileShellState extends State<MobileShell> {
   @override
   Widget build(BuildContext context) => Scaffold(
         body: IndexedStack(index: selected, children: [
-          widget.api.signedIn
-              ? ReadingHome(
-                  api: widget.api,
-                  onExplore: explore,
-                  onLibrary: () => select(2),
-                  onProfile: () => select(3),
-                  onCommunity: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                          builder: (_) => CommunityScreen(api: widget.api))))
-              : LibraryScreen(api: widget.api),
+          ReadingHome(
+              key: ValueKey('home-${widget.api.signedIn}'),
+              api: widget.api,
+              onExplore: explore,
+              onLibrary: () => select(2),
+              onProfile: () => select(3),
+              onCommunity: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => CommunityScreen(api: widget.api)))),
           if (visited.contains(1))
             LibraryScreen(key: exploreKey, api: widget.api, showIntro: false)
           else
@@ -339,8 +337,49 @@ class _ReadingHomeState extends State<ReadingHome> {
                                           ]),
                                     ]))),
                       ],
-                      heading('Continue Reading', widget.onLibrary),
-                      if (!widget.api.signedIn)
+                      if (!widget.api.signedIn && !widget.collectionOnly) ...[
+                        Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                                color: const Color(0xffedf6ff),
+                                borderRadius: BorderRadius.circular(18)),
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                      'Big ideas. Less reading. More growing.',
+                                      style: TextStyle(
+                                          fontSize: 26,
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xff123b70))),
+                                  const SizedBox(height: 10),
+                                  const Text(
+                                      'Discover book summaries, listen on the go, read in your language and share ideas with other readers.'),
+                                  const SizedBox(height: 12),
+                                  Wrap(spacing: 8, runSpacing: 8, children: [
+                                    FilledButton(
+                                        onPressed: () => Navigator.of(context)
+                                            .push(MaterialPageRoute(
+                                                builder: (_) => AuthScreen(
+                                                    api: widget.api,
+                                                    initialRegister: true))),
+                                        child: const Text('Create account')),
+                                    OutlinedButton(
+                                        onPressed: () => Navigator.of(context)
+                                            .push(MaterialPageRoute(
+                                                builder: (_) => AuthScreen(
+                                                    api: widget.api))),
+                                        child: const Text('Sign in')),
+                                    TextButton(
+                                        onPressed: () => widget.onExplore(),
+                                        child: const Text(
+                                            'Explore book summaries')),
+                                  ]),
+                                ])),
+                      ],
+                      if (widget.api.signedIn || widget.collectionOnly)
+                        heading('Continue Reading', widget.onLibrary),
+                      if (!widget.api.signedIn && widget.collectionOnly)
                         FilledButton(
                             onPressed: () async {
                               await Navigator.of(context).push(
@@ -352,7 +391,9 @@ class _ReadingHomeState extends State<ReadingHome> {
                             child: const Text('Sign in to see your reading'))
                       else if (errors.containsKey('stats'))
                         failure('stats')
-                      else if (!loading && progress.isEmpty)
+                      else if (widget.api.signedIn &&
+                          !loading &&
+                          progress.isEmpty)
                         const Padding(
                             padding: EdgeInsets.symmetric(vertical: 16),
                             child: Text(

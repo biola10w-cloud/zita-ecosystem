@@ -128,12 +128,8 @@ void main() {
     expect(find.widgetWithText(TextFormField, 'Display name'), findsOneWidget);
     Navigator.of(tester.element(find.byType(AuthScreen))).pop();
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Listen'), 200,
-        scrollable: libraryScroll);
-    await tester.tap(find.widgetWithText(ActionChip, 'Listen'));
-    await tester.pumpAndSettle();
-    expect(find.text('Let the book do the talking'), findsOneWidget);
-    await tester.tap(find.text('Explore the library'));
+    expect(find.text('Browse by category'), findsOneWidget);
+    await tester.tap(find.text('Explore book summaries'));
     await tester.pumpAndSettle();
     expect(find.text('Find your next read').hitTestable(), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -217,6 +213,8 @@ void main() {
           return ok([title('Current selection')]);
         }));
     await tester.pumpWidget(ZitaApp(api: api));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Explore'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('Business'), 300,
         scrollable: libraryScroll);

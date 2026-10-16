@@ -616,7 +616,9 @@ class _AuthScreenState extends State<AuthScreen> {
 }
 
 class ReaderScreen extends StatefulWidget {
-  const ReaderScreen({super.key, required this.api, required this.book});
+  final SpeechEngine? speechEngine;
+  const ReaderScreen(
+      {super.key, required this.api, required this.book, this.speechEngine});
   final ZitaApi api;
   final Map<String, dynamic> book;
   @override
@@ -642,6 +644,8 @@ class _ReaderScreenState extends State<ReaderScreen>
   String translationStatus = '';
   Timer? translationTimer;
   bool foreground = true;
+  bool continueNarration = false;
+  final speechSettings = SpeechSettings();
   String get path =>
       'books/${Uri.encodeComponent(widget.book['slug'] as String)}';
   @override
@@ -672,6 +676,7 @@ class _ReaderScreenState extends State<ReaderScreen>
 
   void sessionChanged() {
     if (!mounted || widget.api.signedIn) return;
+    continueNarration = false;
     contentGeneration++;
     translationTimer?.cancel();
     saveTimer?.cancel();
@@ -694,6 +699,7 @@ class _ReaderScreenState extends State<ReaderScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     foreground = state == AppLifecycleState.resumed;
+    if (!foreground) continueNarration = false;
     if (state == AppLifecycleState.resumed) {
       unawaited(verifySession());
       if (loading && translationStatus.isNotEmpty) unawaited(loadChapter());
@@ -766,6 +772,7 @@ class _ReaderScreenState extends State<ReaderScreen>
       if (mounted) {
         setState(() {
           error = e;
+          continueNarration = false;
           loading = false;
         });
       }
@@ -828,13 +835,14 @@ class _ReaderScreenState extends State<ReaderScreen>
       if (mounted && generation == contentGeneration) {
         setState(() {
           error = e;
+          continueNarration = false;
           loading = false;
         });
       }
     }
   }
 
-  Future<bool> save() async {
+  Future<bool> save({bool chapterComplete = false}) async {
     saveTimer?.cancel();
     if (loading || error != null || chapters.isEmpty) return true;
     final position = scroll.hasClients &&
@@ -852,7 +860,10 @@ class _ReaderScreenState extends State<ReaderScreen>
         await widget.api.request('$path/progress',
             method: 'POST',
             authenticated: true,
-            data: {'chapterIndex': index, 'scrollPosition': position});
+            data: {
+              'chapterIndex': index,
+              'scrollPosition': chapterComplete ? 1.0 : position
+            });
         return true;
       } catch (e) {
         if (mounted) {
@@ -874,7 +885,27 @@ class _ReaderScreenState extends State<ReaderScreen>
     }
   }
 
+  Future<void> narrationFinished() async {
+    if (!continueNarration || !foreground || !widget.api.signedIn) return;
+    final completedChapter = chapter;
+    final saved = await save(chapterComplete: true);
+    if (!mounted) return;
+    if (!saved || chapter >= chapters.length - 1) {
+      setState(() => continueNarration = false);
+      return;
+    }
+    if (!continueNarration ||
+        !foreground ||
+        !widget.api.signedIn ||
+        chapter != completedChapter) {
+      return;
+    }
+    setState(() => chapter++);
+    await loadChapter();
+  }
+
   Future<void> move(int offset) async {
+    continueNarration = false;
     if (!await save() || !mounted) return;
     setState(() {
       chapter += offset;
@@ -883,6 +914,7 @@ class _ReaderScreenState extends State<ReaderScreen>
   }
 
   Future<void> changeLanguage(String next) async {
+    continueNarration = false;
     final position = scroll.hasClients &&
             scroll.position.hasContentDimensions &&
             scroll.position.maxScrollExtent > 0
@@ -1097,9 +1129,21 @@ class _ReaderScreenState extends State<ReaderScreen>
                     const SizedBox(height: 10),
                     ListenControls(
                         key: ValueKey('$chapter-$language'),
+                        engine: widget.speechEngine,
+                        settings: speechSettings,
+                        autoplay: continueNarration && foreground,
+                        onPlaybackChanged: (active) {
+                          continueNarration = active;
+                        },
+                        onComplete: narrationFinished,
                         text: content,
                         language: language),
                   ],
+                  if (loading && continueNarration)
+                    TextButton(
+                        onPressed: () =>
+                            setState(() => continueNarration = false),
+                        child: const Text('Stop listening')),
                   Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
