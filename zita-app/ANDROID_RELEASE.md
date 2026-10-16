@@ -1,8 +1,21 @@
 # Android testing build
 
 Application ID: `com.zita.zita_app` (retain for future updates).
-Display name: **ZITA**. Current version: `1.0.5+6`.
+Display name: **ZITA**. Current version: `1.0.6+7`.
 The first build has been uploaded to Google Play internal testing by the owner.
+
+## Public homepage and continuous narration
+
+- Version: `1.0.6+7`; source: `0ac07ed5f74d2ff5d6dd4545ea5b9b911e1e1e53`.
+- Public Phase 2 home, word-position pause/resume, installed voice selection,
+  lower-pitched male-style preset and automatic narration through book end.
+- All 44 tests and static analysis passed. Physical-device audio verification
+  remains with testers; available voices/progress precision depend on device.
+- Signed file: `release-artifacts/android/1.0.6-7/ZITA-THE-APP-1.0.6-7.aab`.
+- SHA-256: `f08a778757650776a3a43d24b44ff5abb39e8a11749b5a8d971ee465259920f7`.
+- Local compilation, strict signature and bundletool validation passed.
+  Original package/certificate and non-debuggable version 1.0.6 (7) verified.
+- Not uploaded to Google Play by us.
 
 ## Preview-style screen update
 
