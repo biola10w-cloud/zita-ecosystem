@@ -111,7 +111,9 @@ class _HomeAdvertsState extends State<HomeAdverts> with WidgetsBindingObserver {
                 height: 130))
         : index == 0
             ? const ReadingIllustration()
-            : _CampaignIllustration(index: index);
+            : FittedBox(
+                fit: BoxFit.contain,
+                child: _CampaignIllustration(index: index));
     if (uri?.scheme != 'https' || uri!.host.isEmpty) return fallback;
     return Image.network(url,
         width: double.infinity,
@@ -136,7 +138,7 @@ class _HomeAdvertsState extends State<HomeAdverts> with WidgetsBindingObserver {
                       fontWeight: FontWeight.w700,
                       color: Color(0xff303c55)))),
           SizedBox(
-              height: largeText ? 390 : 310,
+              height: largeText ? 350 : 260,
               child: Listener(
                   onPointerDown: (_) => touching = true,
                   onPointerUp: (_) => touching = false,
@@ -164,7 +166,7 @@ class _HomeAdvertsState extends State<HomeAdverts> with WidgetsBindingObserver {
                                             CrossAxisAlignment.stretch,
                                         children: [
                                           SizedBox(
-                                              height: 120,
+                                              height: 85,
                                               child: artwork(ad, index)),
                                           Expanded(
                                               child: Padding(

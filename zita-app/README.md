@@ -297,3 +297,32 @@ From 1.0.8+9 the carousel advances every two seconds, loops to the first
 slide, and offers a Pause/Play control. It pauses while touching, in the
 background, and on covered routes, and respects reduced-motion settings.
 Five slides use yellow, pink, mint, purple and orange surfaces, distinct bundled illustrations and dark readable text.
+
+### Offline reading and background narration (1.0.9+10)
+
+The homepage carousel is reduced from 310 to 260 logical pixels (350 with large
+text), with smaller artwork. Its five slides still rotate every two seconds.
+
+Signed-in subscribers and the existing approved testers can use **Download for
+offline reading** on book details. All original-language chapters must download
+successfully before the book appears in **Library > Downloaded books**. Books and
+progress are account-scoped in platform secure storage, removed on sign-out,
+and readable until the earlier of the paid period end or 30 days after download.
+Tester grants last 30 days. Renew downloads online; new translations require
+internet. No backend changes or global free-access changes are required.
+
+Reading positions are saved locally first and synced when connectivity returns.
+The audio_service handler owns narration independently of the reader screen,
+with notification Pause/Resume/Stop, automatic chapter advance, word-position
+checkpoints, and audio-focus/headphone interruption handling. Android includes
+the media-playback foreground service and wake-lock permissions; Play Console
+may request its foreground-service declaration for this release. iOS background
+audio and shared audio-session configuration are included but not built here.
+Installed offline voices are needed for listening without internet. Force stop,
+device reboot or OS process termination can end audio; progress is retained.
+
+Validation: 53 Flutter tests, including account isolation, offline expiry,
+interrupted downloads, offline reader startup, progress synchronization,
+background task removal, chapter advance, pause/resume and session revocation.
+Physical-device screen-off, headphone and battery-management checks remain
+necessary after installing the testing build.

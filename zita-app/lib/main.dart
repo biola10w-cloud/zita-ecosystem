@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'api.dart';
 import 'mobile_home.dart';
+import 'background_narration.dart';
+import 'package:audio_service/audio_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -8,6 +10,20 @@ Future<void> main() async {
   try {
     final api = ZitaApi(baseUrl: url);
     await api.restore();
+    try {
+      narrator = await AudioService.init(
+        builder: () => ZitaNarrator(api),
+        config: const AudioServiceConfig(
+          androidNotificationChannelId: 'com.zita.zita_app.narration',
+          androidNotificationChannelName: 'ZITA book narration',
+          androidStopForegroundOnPause: false,
+        ),
+      );
+      await narrator!.configureSession();
+    } catch (_) {
+      // Reading remains available on platforms without a background service.
+      narrator = null;
+    }
     runApp(ZitaApp(api: api));
   } catch (_) {
     runApp(const MaterialApp(

@@ -7,6 +7,7 @@ import 'brand_art.dart';
 import 'community.dart';
 import 'discovery_widgets.dart';
 import 'screens.dart';
+import 'offline_library.dart';
 
 class MobileShell extends StatefulWidget {
   const MobileShell({super.key, required this.api});
@@ -300,6 +301,15 @@ class _ReadingHomeState extends State<ReadingHome> {
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                     children: [
                       if (loading) const LinearProgressIndicator(),
+                      if (widget.collectionOnly && widget.api.signedIn)
+                        OutlinedButton.icon(
+                          onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      OfflineLibrary(api: widget.api))),
+                          icon: const Icon(Icons.offline_pin_outlined),
+                          label: const Text('Downloaded books'),
+                        ),
                       if (!widget.collectionOnly)
                         HomeAdverts(
                             books: featured,

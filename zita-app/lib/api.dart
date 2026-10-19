@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'offline_reading.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -19,7 +20,10 @@ abstract class SessionStore {
 }
 
 class SecureSessionStore implements SessionStore {
-  final FlutterSecureStorage storage = const FlutterSecureStorage();
+  final FlutterSecureStorage storage = const FlutterSecureStorage(
+    iOptions: IOSOptions(
+        accessibility: KeychainAccessibility.first_unlock_this_device),
+  );
   @override
   Future<String?> read(String key) => storage.read(key: key);
   @override
@@ -55,6 +59,18 @@ class ZitaApi extends ChangeNotifier {
   String? _refresh;
   Future<void>? _refreshing;
   bool get signedIn => _refresh != null;
+  late final offline = OfflineReading(this);
+  String? get accountId {
+    if (!signedIn) return null;
+    try {
+      final payload = jsonDecode(utf8.decode(
+          base64Url.decode(base64Url.normalize(_access!.split('.')[1]))));
+      return payload['sub'] as String?;
+    } catch (_) {
+      return null;
+    }
+  }
+
   bool readingTestAccess = false;
   Future<void> refreshAccessPolicy() async {
     try {
@@ -100,6 +116,7 @@ class ZitaApi extends ChangeNotifier {
   }
 
   Future<void> clearSession() async {
+    await offline.clear();
     readingTestAccess = false;
     _access = null;
     _refresh = null;

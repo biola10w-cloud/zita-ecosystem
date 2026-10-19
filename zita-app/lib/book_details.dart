@@ -41,7 +41,7 @@ class BookDetailsScreen extends StatefulWidget {
 class _BookDetailsScreenState extends State<BookDetailsScreen> {
   Map<String, dynamic>? details;
   Object? error;
-  bool loading = true, opening = false;
+  bool loading = true, opening = false, downloading = false;
 
   @override
   void initState() {
@@ -77,6 +77,25 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           builder: (_) => ReaderScreen(api: widget.api, book: details!)));
     } finally {
       if (mounted) setState(() => opening = false);
+    }
+  }
+
+  Future<void> download() async {
+    setState(() => downloading = true);
+    try {
+      await widget.api.offline.download(details!);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content:
+                Text('Saved. Find this book in Library > Downloaded books.')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => downloading = false);
     }
   }
 
@@ -136,6 +155,16 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                       onPressed: opening ? null : read,
                       icon: const Icon(Icons.menu_book),
                       label: const Text('Read book')),
+                  if (widget.api.signedIn)
+                    OutlinedButton.icon(
+                      onPressed: downloading ? null : download,
+                      icon: Icon(downloading
+                          ? Icons.downloading
+                          : Icons.download_outlined),
+                      label: Text(downloading
+                          ? 'Downloading all chapters...'
+                          : 'Download for offline reading'),
+                    ),
                 ]),
     );
   }

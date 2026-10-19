@@ -10,6 +10,7 @@ import 'account.dart';
 import 'discovery_widgets.dart';
 import 'brand_art.dart';
 import 'subscription.dart';
+import 'background_narration.dart';
 
 class RetryView extends StatelessWidget {
   const RetryView({super.key, required this.error, required this.retry});
@@ -646,6 +647,9 @@ class _ReaderScreenState extends State<ReaderScreen>
   bool foreground = true;
   bool continueNarration = false;
   final speechSettings = SpeechSettings();
+  Map<String, dynamic>? downloaded;
+  StreamSubscription? narrationChanges;
+  String get slug => widget.book['slug'] as String;
   String get path =>
       'books/${Uri.encodeComponent(widget.book['slug'] as String)}';
   @override
@@ -654,6 +658,17 @@ class _ReaderScreenState extends State<ReaderScreen>
     WidgetsBinding.instance.addObserver(this);
     scroll.addListener(scheduleSave);
     widget.api.addListener(sessionChanged);
+    narrationChanges = narrator?.changes.stream.listen((_) {
+      final active = narrator!;
+      if (mounted &&
+          active.slug == slug &&
+          chapters.isNotEmpty &&
+          active.chapter != chapter &&
+          active.chapter < chapters.length) {
+        chapter = active.chapter;
+        unawaited(loadChapter());
+      }
+    });
     initialize();
   }
 
@@ -664,6 +679,7 @@ class _ReaderScreenState extends State<ReaderScreen>
     translationTimer?.cancel();
     saveTimer?.cancel();
     scroll.dispose();
+    narrationChanges?.cancel();
     super.dispose();
   }
 
@@ -753,9 +769,21 @@ class _ReaderScreenState extends State<ReaderScreen>
       error = null;
     });
     try {
-      final book = await widget.api.request(path);
-      final progress =
-          await widget.api.request('$path/progress', authenticated: true);
+      downloaded = await widget.api.offline.book(slug);
+      final book = downloaded?['book'] ?? await widget.api.request(path);
+      final local = await widget.api.offline.progress(slug);
+      dynamic progress = local;
+      if (downloaded == null) {
+        try {
+          await widget.api.offline.syncProgress(slug);
+          progress =
+              await widget.api.request('$path/progress', authenticated: true);
+        } on ApiException catch (e) {
+          if (e.status != 0 || local == null) rethrow;
+        }
+      } else {
+        unawaited(widget.api.offline.syncProgress(slug).catchError((_) {}));
+      }
       if (!mounted) return;
       originalLanguage = book['language'] as String? ?? originalLanguage;
       language = originalLanguage;
@@ -766,6 +794,10 @@ class _ReaderScreenState extends State<ReaderScreen>
       final savedIndex = (progress?['chapterIndex'] as num?)?.toInt();
       chapter = chapters.indexWhere((c) => c['chapterIndex'] == savedIndex);
       if (chapter < 0) chapter = 0;
+      if (narrator?.slug == slug && (narrator!.playing || narrator!.paused)) {
+        chapter = narrator!.chapter.clamp(0, chapters.length - 1);
+        language = narrator!.language;
+      }
       await loadChapter(
           position: (progress?['scrollPosition'] as num?)?.toDouble() ?? 0);
     } catch (e) {
@@ -816,9 +848,14 @@ class _ReaderScreenState extends State<ReaderScreen>
         }
       }
       final index = chapters[chapter]['chapterIndex'];
-      final result = await widget.api.request(
-          '$path/chapters/$index/content?language=${Uri.encodeComponent(language)}',
-          authenticated: true);
+      final cached = await widget.api.offline.book(slug);
+      final cachedText =
+          language == originalLanguage ? cached?['content']?['$index'] : null;
+      final result = cachedText != null
+          ? {'content': cachedText}
+          : await widget.api.request(
+              '$path/chapters/$index/content?language=${Uri.encodeComponent(language)}',
+              authenticated: true);
       if (!mounted || generation != contentGeneration || !widget.api.signedIn) {
         return;
       }
@@ -844,6 +881,9 @@ class _ReaderScreenState extends State<ReaderScreen>
 
   Future<bool> save({bool chapterComplete = false}) async {
     saveTimer?.cancel();
+    if (narrator?.slug == slug && (narrator!.playing || narrator!.paused)) {
+      return true;
+    }
     if (loading || error != null || chapters.isEmpty) return true;
     final position = scroll.hasClients &&
             scroll.position.hasContentDimensions &&
@@ -857,13 +897,22 @@ class _ReaderScreenState extends State<ReaderScreen>
     // Serialize snapshots so a slow older request cannot overwrite a newer one.
     final operation = saveTail.then((_) async {
       try {
-        await widget.api.request('$path/progress',
-            method: 'POST',
-            authenticated: true,
-            data: {
-              'chapterIndex': index,
-              'scrollPosition': chapterComplete ? 1.0 : position
-            });
+        final snapshot = {
+          'chapterIndex': index,
+          'scrollPosition': chapterComplete ? 1.0 : position
+        };
+        await widget.api.offline.saveProgress(slug, snapshot);
+        if (widget.api.accountId != null) {
+          unawaited(widget.api.offline.syncProgress(slug).catchError((_) {}));
+        } else {
+          await widget.api.request('$path/progress',
+              method: 'POST',
+              authenticated: true,
+              data: {
+                'chapterIndex': index,
+                'scrollPosition': chapterComplete ? 1.0 : position
+              });
+        }
         return true;
       } catch (e) {
         if (mounted) {
@@ -905,6 +954,7 @@ class _ReaderScreenState extends State<ReaderScreen>
   }
 
   Future<void> move(int offset) async {
+    if (narrator?.slug == slug) await narrator!.stop();
     continueNarration = false;
     if (!await save() || !mounted) return;
     setState(() {
@@ -914,6 +964,7 @@ class _ReaderScreenState extends State<ReaderScreen>
   }
 
   Future<void> changeLanguage(String next) async {
+    if (narrator?.slug == slug) await narrator!.stop();
     continueNarration = false;
     final position = scroll.hasClients &&
             scroll.position.hasContentDimensions &&
@@ -1127,17 +1178,26 @@ class _ReaderScreenState extends State<ReaderScreen>
                               semanticsLabel: 'Book reading progress',
                             )),
                     const SizedBox(height: 10),
-                    ListenControls(
-                        key: ValueKey('$chapter-$language'),
-                        engine: widget.speechEngine,
-                        settings: speechSettings,
-                        autoplay: continueNarration && foreground,
-                        onPlaybackChanged: (active) {
-                          continueNarration = active;
-                        },
-                        onComplete: narrationFinished,
-                        text: content,
-                        language: language),
+                    if (narrator != null && widget.speechEngine == null)
+                      BackgroundListenControls(
+                          handler: narrator!,
+                          book: widget.book,
+                          chapters: chapters,
+                          chapter: chapter,
+                          language: language,
+                          text: content)
+                    else
+                      ListenControls(
+                          key: ValueKey('$chapter-$language'),
+                          engine: widget.speechEngine,
+                          settings: speechSettings,
+                          autoplay: continueNarration && foreground,
+                          onPlaybackChanged: (active) {
+                            continueNarration = active;
+                          },
+                          onComplete: narrationFinished,
+                          text: content,
+                          language: language),
                   ],
                   if (loading && continueNarration)
                     TextButton(
