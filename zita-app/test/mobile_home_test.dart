@@ -74,7 +74,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Continue Reading'), findsOneWidget);
     expect(find.text('42% complete'), findsOneWidget);
+    await tester.drag(find.byType(ListView).first, const Offset(0, -300));
+    await tester.pumpAndSettle();
     expect(find.text('FEATURED'), findsOneWidget);
+    await tester.drag(find.byType(ListView).first, const Offset(0, 300));
+    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     if (preview != null) {
       await tester.runAsync(() async {

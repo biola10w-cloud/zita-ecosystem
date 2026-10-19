@@ -1,0 +1,5 @@
+[
+  {"title":"Your next big idea starts here", "subtitle":"Discover book summaries for your next chapter.", "action":"explore", "button":"Explore books", "imageUrl":""},
+  {"title":"Turn reading time into listening time", "subtitle":"Listen, pause and pick up where you left off.", "action":"explore", "button":"Find a book", "imageUrl":""},
+  {"title":"Good books. Great conversations.", "subtitle":"Meet readers and share what you are learning.", "action":"community", "button":"Join the community", "imageUrl":""}
+]

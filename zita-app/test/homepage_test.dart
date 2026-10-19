@@ -123,12 +123,15 @@ void main() {
       });
     }
     await tester.ensureVisible(find.text('Create account'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Create account'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(TextFormField, 'Display name'), findsOneWidget);
     Navigator.of(tester.element(find.byType(AuthScreen))).pop();
     await tester.pumpAndSettle();
     expect(find.text('Browse by category'), findsOneWidget);
+    await tester.ensureVisible(find.text('Explore book summaries'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Explore book summaries'));
     await tester.pumpAndSettle();
     expect(find.text('Find your next read').hitTestable(), findsOneWidget);

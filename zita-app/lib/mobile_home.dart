@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'api.dart';
+import 'home_adverts.dart';
 import 'account.dart';
 import 'book_details.dart';
 import 'brand_art.dart';
@@ -299,6 +300,11 @@ class _ReadingHomeState extends State<ReadingHome> {
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                     children: [
                       if (loading) const LinearProgressIndicator(),
+                      if (!widget.collectionOnly)
+                        HomeAdverts(
+                            books: featured,
+                            onExplore: () => widget.onExplore(),
+                            onCommunity: widget.onCommunity),
                       if (widget.collectionOnly && widget.api.signedIn) ...[
                         Container(
                             padding: const EdgeInsets.all(24),

@@ -281,3 +281,16 @@ testers.
 
 Validation: all 44 tests pass, covering resume offsets, lower-pitch selection,
 complete-book narration, public discovery and existing reading/community flows.
+
+### Homepage advert carousel (1.0.7+8)
+
+Both public and signed-in Home show a swipeable picture carousel above the main
+content, with previous/next arrows and accessible page indicators. It uses ZITA
+promotions and available book covers until campaign images are supplied.
+
+Edit assets/home_adverts.json to set title, subtitle, button, imageUrl (an HTTPS
+image address), and action (explore or community). Empty or failed images fall
+back to existing ZITA artwork. Campaign configuration is bundled in the app,
+so changing it requires a new app build; this is not an admin upload system.
+Use landscape images, keep important artwork centred, and check the crop.
+The carousel does not automatically rotate or interrupt reading.
