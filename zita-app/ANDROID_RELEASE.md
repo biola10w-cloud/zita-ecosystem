@@ -1,8 +1,19 @@
 # Android testing build
 
 Application ID: `com.zita.zita_app` (retain for future updates).
-Display name: **ZITA**. Current version: `1.0.6+7`.
+Display name: **ZITA**. Current version: `1.0.7+8`.
 The first build has been uploaded to Google Play internal testing by the owner.
+
+## Homepage picture carousel
+
+- Version: `1.0.7+8`; source: `517ea143f6884aa14db296dfc4d42edabb29a888`.
+- Public and signed-in home carousel with three starter ZITA promotions,
+  image support, swipe navigation, arrows and page indicators.
+- All 45 tests and static analysis passed.
+- Signed file: `release-artifacts/android/1.0.7-8/ZITA-THE-APP-1.0.7-8.aab`.
+- SHA-256: `cdbb6d89d643f4bd447de06bacf1675a9c54852ae011d3d9b53f68d03234fefc`.
+- Strict signature, bundletool, package, original certificate and version checks
+  passed. Not uploaded to Google Play or tested on a physical device by us.
 
 ## Public homepage and continuous narration
 
