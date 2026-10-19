@@ -1,8 +1,20 @@
 # Android testing build
 
 Application ID: `com.zita.zita_app` (retain for future updates).
-Display name: **ZITA**. Current version: `1.0.9+10`.
+Display name: **ZITA**. Current version: `1.0.10+11`.
 The first build has been uploaded to Google Play internal testing by the owner.
+
+## Automatic carousel without playback buttons
+
+- Version: `1.0.10+11`; source: `78f3ec0`.
+- Removed carousel Play/Pause control; five pictures rotate automatically every
+  two seconds. Swipe navigation, arrows and indicators remain available.
+- Carousel timing/navigation tests and static analysis passed.
+- Signed file: `release-artifacts/android/1.0.10-11/ZITA-THE-APP-1.0.10-11.aab`.
+- SHA-256: `272f757744841138418d8db575f9cf992a884b281b22ddb7da6b5c7dbb275212`.
+- Strict signature, bundletool, original package/certificate and version verified.
+- Includes 1.0.9 offline reading and background narration. Not uploaded to Play;
+  physical-device playback checks remain necessary after installation.
 
 ## Offline reading and continuous background narration
 
@@ -147,7 +159,7 @@ The first build has been uploaded to Google Play internal testing by the owner.
   `8D:25:C6:67:C1:57:71:08:C7:B4:C3:76:E1:83:E1:C7:BD:25:ED:57:62:4C:23:73:7B:99:18:D3:E1:DC:7F:CE`.
 - At preparation time, this bundle had not been uploaded to Google Play. The owner
   subsequently uploaded it for internal testing. In Play Console, select
-  ZITA THE APP, then **Test and release Ã¢â€ â€™ Testing Ã¢â€ â€™ Internal testing Ã¢â€ â€™ Create new
+  ZITA THE APP, then **Test and release ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Testing ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Internal testing ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Create new
   release**. Configure Play App Signing and upload the signed `.aab` above. Add
   your test accounts and follow the console's review/rollout instructions.
   See [Google's testing guide](https://support.google.com/googleplay/android-developer/answer/9845334).
