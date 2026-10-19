@@ -1,8 +1,20 @@
 # Android testing build
 
 Application ID: `com.zita.zita_app` (retain for future updates).
-Display name: **ZITA**. Current version: `1.0.7+8`.
+Display name: **ZITA**. Current version: `1.0.8+9`.
 The first build has been uploaded to Google Play internal testing by the owner.
+
+## Five colourful automatic adverts
+
+- Version: `1.0.8+9`; source: `f14c7b3`.
+- Five illustrated homepage campaigns with two-second rotation, looping,
+  pause/play, touch/background pause and reduced-motion support.
+- Yellow, pink, mint, purple and orange surfaces with dark text.
+- All 46 tests and static analysis passed.
+- Signed file: `release-artifacts/android/1.0.8-9/ZITA-THE-APP-1.0.8-9.aab`.
+- SHA-256: `6e35b1fae669c128126eda8ecc1751974acddf059a92037626e236e24add3950`.
+- Strict signature, bundletool, original package/certificate and version verified.
+- Not uploaded to Google Play or tested on a physical device by us.
 
 ## Homepage picture carousel
 
@@ -118,7 +130,7 @@ The first build has been uploaded to Google Play internal testing by the owner.
   `8D:25:C6:67:C1:57:71:08:C7:B4:C3:76:E1:83:E1:C7:BD:25:ED:57:62:4C:23:73:7B:99:18:D3:E1:DC:7F:CE`.
 - At preparation time, this bundle had not been uploaded to Google Play. The owner
   subsequently uploaded it for internal testing. In Play Console, select
-  ZITA THE APP, then **Test and release → Testing → Internal testing → Create new
+  ZITA THE APP, then **Test and release â†’ Testing â†’ Internal testing â†’ Create new
   release**. Configure Play App Signing and upload the signed `.aab` above. Add
   your test accounts and follow the console's review/rollout instructions.
   See [Google's testing guide](https://support.google.com/googleplay/android-developer/answer/9845334).
