@@ -1,8 +1,25 @@
 # Android testing build
 
 Application ID: `com.zita.zita_app` (retain for future updates).
-Display name: **ZITA**. Current version: `1.0.8+9`.
+Display name: **ZITA**. Current version: `1.0.9+10`.
 The first build has been uploaded to Google Play internal testing by the owner.
+
+## Offline reading and continuous background narration
+
+- Version: `1.0.9+10`; source: `387225234d03745152df942a004ed35579aa85f9`.
+- Shorter carousel; complete original-language downloads for subscribers and
+  existing testers; account-scoped encrypted storage with expiry and deletion
+  on sign-out; local reading positions and deferred progress synchronization.
+- Background narration independent of the reader screen, automatic chapter
+  advance, notification Pause/Resume/Stop, and saved narration checkpoints.
+- All 53 Flutter tests and static analysis passed. Physical-device screen-off,
+  offline voice, headphone and battery-management checks remain with testers.
+- Signed file: `release-artifacts/android/1.0.9-10/ZITA-THE-APP-1.0.9-10.aab`.
+- SHA-256: `d993ef3f9d8417780f4f93452aacd664cfb969643a5543db1f22bbb33ab78c5b`.
+- Strict signature and bundletool validation passed; original package/certificate,
+  non-debuggable version and media-playback foreground service verified.
+- Not uploaded to Google Play. No backend deployment needed. iOS configuration
+  is included but no iOS build or device verification was performed here.
 
 ## Five colourful automatic adverts
 
@@ -130,7 +147,7 @@ The first build has been uploaded to Google Play internal testing by the owner.
   `8D:25:C6:67:C1:57:71:08:C7:B4:C3:76:E1:83:E1:C7:BD:25:ED:57:62:4C:23:73:7B:99:18:D3:E1:DC:7F:CE`.
 - At preparation time, this bundle had not been uploaded to Google Play. The owner
   subsequently uploaded it for internal testing. In Play Console, select
-  ZITA THE APP, then **Test and release â†’ Testing â†’ Internal testing â†’ Create new
+  ZITA THE APP, then **Test and release Ã¢â€ â€™ Testing Ã¢â€ â€™ Internal testing Ã¢â€ â€™ Create new
   release**. Configure Play App Signing and upload the signed `.aab` above. Add
   your test accounts and follow the console's review/rollout instructions.
   See [Google's testing guide](https://support.google.com/googleplay/android-developer/answer/9845334).
