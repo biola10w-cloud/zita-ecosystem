@@ -37,8 +37,8 @@ export async function analyticsRoutes(app: FastifyInstance) {
   app.get('/dashboard', {
     preHandler: [authenticate, requireRole('ADMIN')],
   }, async (request, reply) => {
-    const { days } = request.query as { days?: string };
-    const stats = await AnalyticsService.getDashboardStats(Number(days ?? 30));
+    const { days } = z.object({ days: z.coerce.number().int().min(1).max(90).default(30) }).parse(request.query);
+    const stats = await AnalyticsService.getDashboardStats(days);
     return reply.send({ success: true, data: stats });
   });
 }

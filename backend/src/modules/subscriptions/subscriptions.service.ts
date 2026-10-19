@@ -234,6 +234,8 @@ export class SubscriptionsService {
     const userId = stripeSubscription.metadata?.userId;
     if (!userId) return; // Not one of ours â€” ignore
 
+    // Late billing notifications must not recreate a deleted account's records.
+    if (!await prisma.user.findUnique({ where: { id: userId }, select: { id: true } })) return;
     const status = StripeService.mapStatus(stripeSubscription.status);
     const item = stripeSubscription.items.data[0];
     const isTrial = stripeSubscription.status === 'trialing';

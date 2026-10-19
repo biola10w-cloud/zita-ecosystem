@@ -3,7 +3,7 @@ import { API_BASE_URL } from '../../../../lib/api';
 import { getSessionToken, REFRESH_COOKIE, SESSION_COOKIE } from '../../../../lib/session';
 
 export async function POST() {
-  const token = getSessionToken();
+  const token = await getSessionToken();
   if (token) {
     await fetch(`${API_BASE_URL}/auth/logout`, {
       method: 'POST',

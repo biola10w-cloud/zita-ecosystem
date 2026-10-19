@@ -175,11 +175,11 @@ export class AuthService {
     // Rotate: revoke old session, issue new tokens
     // This is the key security property â€” refresh tokens are single-use
     const newTokens = await prisma.$transaction(async (tx) => {
-      // Revoke old session
-      await tx.session.update({
-        where: { id: matchedSession!.id },
-        data: { revokedAt: new Date() },
-      });
+      // Serialize login and refresh for this account. Recheck under the lock so
+      // a refresh matched before a new login cannot revive the old session.
+      await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${matchedSession!.userId} FOR UPDATE`;
+      const active = await tx.session.findFirst({ where: { id: matchedSession!.id, revokedAt: null, expiresAt: { gt: new Date() } } });
+      if (!active) throw Object.assign(new Error('This session has ended. Please sign in again.'), { statusCode: 401, code: 'INVALID_REFRESH_TOKEN' });
 
       // Issue new tokens
       return AuthService.issueTokens(
@@ -194,12 +194,13 @@ export class AuthService {
 
   // â”€â”€â”€ Logout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-  static async logout(userId: string, deviceId: string): Promise<void> {
+  static async logout(userId: string, deviceId: string, sessionId?: string): Promise<void> {
     // Revoke all sessions for this device
     await prisma.session.updateMany({
       where: {
         userId,
         deviceId,
+        ...(sessionId ? { id: sessionId } : {}),
         revokedAt: null,
       },
       data: { revokedAt: new Date() },
@@ -280,16 +281,25 @@ export class AuthService {
     deviceId: string,
     tx?: any,
   ): Promise<AuthTokens> {
-    const db = tx ?? prisma;
+    if (!tx) return prisma.$transaction(async transaction => {
+      await transaction.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${user.id} FOR UPDATE`;
+      await transaction.offlineKey.updateMany({ where: { userId: user.id, revokedAt: null }, data: { revokedAt: new Date() } });
+      return AuthService.issueTokens(user, deviceId, transaction);
+    });
+    const db = tx;
+    const sessionId = crypto.randomUUID();
+
+    await db.session.updateMany({ where: { userId: user.id, revokedAt: null }, data: { revokedAt: new Date() } });
 
     // Access token â€” RS256 JWT, 15-minute expiry
-    // Signed with private key; verified with public key (no DB lookup needed)
+    // Authentication also checks that this exact session is still active.
     const accessToken = jwt.sign(
       {
         sub: user.id,
         email: user.email,
         role: user.role,
         deviceId,
+        sid: sessionId,
       } satisfies Omit<JwtPayload, 'iat' | 'exp'>,
       privateKey,
       {
@@ -308,6 +318,7 @@ export class AuthService {
 
     await db.session.create({
       data: {
+        id: sessionId,
         userId: user.id,
         deviceId,
         refreshToken: hashedRefreshToken,

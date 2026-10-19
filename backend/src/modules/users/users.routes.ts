@@ -2,6 +2,9 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { authenticate } from '../../shared/middleware/authenticate';
 import { prisma } from '../../shared/db/prisma';
+import { rateLimits } from '../../shared/middleware/rateLimiter';
+import { AccountDeletionService } from './account-deletion.service';
+import { BlocksService } from './blocks.service';
 
 const profileSchema = z.object({
   displayName: z.string().trim().min(1).max(80).optional(),
@@ -10,6 +13,25 @@ const profileSchema = z.object({
 }).strict();
 
 export async function usersRoutes(app: FastifyInstance) {
+  app.delete('/me', { preHandler: [authenticate], config: { rateLimit: rateLimits.auth } }, async (request) => {
+    const { password } = z.object({ password: z.string().min(1).max(128), confirmation: z.literal('DELETE') }).strict().parse(request.body);
+    await AccountDeletionService.delete(request.user!.sub, password);
+    return { success: true, data: null };
+  });
+
+  app.get('/me/blocks', { preHandler: [authenticate] }, async request => ({
+    success: true, data: await BlocksService.list(request.user!.sub),
+  }));
+  app.put('/me/blocks/:userId', { preHandler: [authenticate], config: { rateLimit: rateLimits.auth } }, async request => {
+    const { userId } = z.object({ userId: z.string().uuid() }).parse(request.params);
+    await BlocksService.block(request.user!.sub, userId);
+    return { success: true, data: null };
+  });
+  app.delete('/me/blocks/:userId', { preHandler: [authenticate] }, async request => {
+    const { userId } = z.object({ userId: z.string().uuid() }).parse(request.params);
+    await BlocksService.unblock(request.user!.sub, userId);
+    return { success: true, data: null };
+  });
   app.get('/me', { preHandler: [authenticate] }, async (request, reply) => {
     const user = await prisma.user.findUnique({
       where: { id: request.user!.sub },
