@@ -139,7 +139,7 @@ GitHub Mobile checks now builds an Android debug APK artifact and continues the
 iOS simulator/unsigned release compilation checks. The debug APK is for development
 testing, not Play Store submission. No signing keys or store credentials are in Git.
 
-## Release checkpoint — September 17, 2026
+## Release checkpoint â€” September 17, 2026
 
 - GitHub [Mobile checks run 34468123632](https://github.com/biola10w-cloud/zita-ecosystem/actions/runs/34468123632)
   passed for commit `b101299`: formatting, analysis, tests, iOS simulator
@@ -155,7 +155,7 @@ testing, not Play Store submission. No signing keys or store credentials are in 
   on a mobile device. iOS distribution signing and TestFlight remain separate
   release steps.
 
-## Verification in this workspace — October 6, 2026
+## Verification in this workspace â€” October 6, 2026
 
 - Flutter static analysis passed with no issues.
 - All 31 mobile tests passed, covering discovery, account management, community,
@@ -171,7 +171,7 @@ testing, not Play Store submission. No signing keys or store credentials are in 
 - This batch requires deployment of the backend migration/API and reader website.
   The earlier backend Dockerfile repair was deployed separately.
 
-## Public homepage refresh — 1.0.1+2
+## Public homepage refresh â€” 1.0.1+2
 
 The native homepage now introduces ZITA before sign-in, with an illustrated
 reading/listening hero, a custom vector book-mark logo, and bundled OFL-licensed
@@ -293,4 +293,7 @@ image address), and action (explore or community). Empty or failed images fall
 back to existing ZITA artwork. Campaign configuration is bundled in the app,
 so changing it requires a new app build; this is not an admin upload system.
 Use landscape images, keep important artwork centred, and check the crop.
-The carousel does not automatically rotate or interrupt reading.
+From 1.0.8+9 the carousel advances every two seconds, loops to the first
+slide, and offers a Pause/Play control. It pauses while touching, in the
+background, and on covered routes, and respects reduced-motion settings.
+Five slides use yellow, pink, mint, purple and orange surfaces, distinct bundled illustrations and dark readable text.
