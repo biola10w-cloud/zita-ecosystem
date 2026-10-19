@@ -21,7 +21,7 @@ class HomeAdverts extends StatefulWidget {
 
 class _HomeAdvertsState extends State<HomeAdverts> with WidgetsBindingObserver {
   Timer? rotation;
-  bool paused = false, foreground = true, touching = false;
+  bool foreground = true, touching = false;
   static const slideColors = [
     Color(0xffffd56b),
     Color(0xffffb3c1),
@@ -42,7 +42,6 @@ class _HomeAdvertsState extends State<HomeAdverts> with WidgetsBindingObserver {
   void startRotation() {
     rotation = Timer.periodic(const Duration(seconds: 2), (_) {
       if (!mounted ||
-          paused ||
           !foreground ||
           touching ||
           adverts.length < 2 ||
@@ -223,10 +222,6 @@ class _HomeAdvertsState extends State<HomeAdverts> with WidgetsBindingObserver {
               alignment: WrapAlignment.center,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                IconButton(
-                    tooltip: paused ? 'Play adverts' : 'Pause adverts',
-                    onPressed: () => setState(() => paused = !paused),
-                    icon: Icon(paused ? Icons.play_arrow : Icons.pause)),
                 IconButton(
                     tooltip: 'Previous advert',
                     onPressed: selected > 0 ? () => go(selected - 1) : null,

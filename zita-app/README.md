@@ -297,6 +297,8 @@ From 1.0.8+9 the carousel advances every two seconds, loops to the first
 slide, and offers a Pause/Play control. It pauses while touching, in the
 background, and on covered routes, and respects reduced-motion settings.
 Five slides use yellow, pink, mint, purple and orange surfaces, distinct bundled illustrations and dark readable text.
+From 1.0.10+11, the carousel has no Play/Pause button: it rotates automatically
+while visible, retaining swipe navigation, arrows, dots and reduced-motion support.
 
 ### Offline reading and background narration (1.0.9+10)
 

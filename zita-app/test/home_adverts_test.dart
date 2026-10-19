@@ -5,7 +5,8 @@ import 'package:zita_app/home_adverts.dart';
 
 void main() {
   setUp(() => rootBundle.evict('assets/home_adverts.json'));
-  testWidgets('adverts advance every two seconds, loop and can pause',
+  testWidgets(
+      'adverts advance every two seconds and loop without play controls',
       (tester) async {
     await tester.pumpWidget(MaterialApp(
         home:
@@ -24,11 +25,8 @@ void main() {
       firstAdvance = false;
       expect(find.text(title), findsOneWidget);
     }
-    await tester.tap(find.byTooltip('Pause adverts'));
-    await tester.pump(const Duration(seconds: 6));
-    await tester.pumpAndSettle();
-    expect(find.text('Your next big idea starts here'), findsOneWidget);
-    await tester.tap(find.byTooltip('Play adverts'));
+    expect(find.byTooltip('Pause adverts'), findsNothing);
+    expect(find.byTooltip('Play adverts'), findsNothing);
     await tester.pump(const Duration(seconds: 2));
     await tester.pumpAndSettle();
     expect(find.text('Turn reading time into listening time'), findsOneWidget);
@@ -48,7 +46,6 @@ void main() {
                 onExplore: () => explored++, onCommunity: () => community++))));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Pause adverts'));
     await tester.tap(find.bySemanticsLabel('Advert 1 of 5'));
     await tester.pumpAndSettle();
     expect(find.text('Your next big idea starts here'), findsOneWidget);
