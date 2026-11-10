@@ -10,6 +10,7 @@ process.stdin.on('end', async () => {
   const { DATABASE_URL } = JSON.parse(input);
   const db = new PrismaClient({ datasources: { db: { url: DATABASE_URL } } });
   const suffix = crypto.randomUUID();
+  const legacyTag = `legacy oversized book tag retained during editing ${suffix}`;
   const email = `zita-actions-${suffix}@example.invalid`;
   const password = crypto.randomBytes(32).toString('base64url');
   const origin = 'https://zita-admin-production.up.railway.app';
@@ -18,7 +19,8 @@ process.stdin.on('end', async () => {
   try {
     const before = await db.book.count({ where: { isPublished: true } });
     user = await db.user.create({ data: { email, passwordHash: await bcrypt.hash(password, 12), displayName: 'Temporary action check', role: 'ADMIN' } });
-    book = await db.book.create({ data: { slug: `zita-actions-${suffix}`, title: 'Temporary unpublished action check', authorName: 'Temporary check', description: 'Disposable deployment verification', estimatedMinutes: 1, isPublished: false } });
+    book = await db.book.create({ data: { slug: `zita-actions-${suffix}`, title: 'Temporary unpublished action check', authorName: 'Temporary check', description: 'Disposable deployment verification', estimatedMinutes: 1, isPublished: false,
+      tags: { create: { tag: { create: { name: legacyTag } } } } } });
     const login = await request('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
     assert.equal(login.status, 200, 'Temporary administrator login');
     const cookie = login.headers.getSetCookie().map(value => value.split(';')[0]).join('; ');
@@ -34,11 +36,22 @@ process.stdin.on('end', async () => {
       await page.goto(`${origin}/books/${book.id}/edit`);
       const editedTitle = `Updated temporary action check ${suffix}`;
       await page.getByLabel('Title', { exact: true }).fill(editedTitle);
+      await page.getByLabel('Author name', { exact: true }).fill('Corrected test author');
+      const category = await db.category.findFirst({ select: { id: true } });
+      if (category) await page.locator(`input[name="categoryIds"][value="${category.id}"]`).check();
       await context.clearCookies({ name: 'zita_admin_session' });
       await page.getByRole('button', { name: 'Save changes' }).click();
       await expect(page).toHaveURL(`${origin}/books`, { timeout: 30000 });
       assert.equal((await db.book.findUniqueOrThrow({ where: { id: book.id } })).title, editedTitle);
-      console.log('Live browser edit after cookie expiry passed.');
+      const saved = await db.book.findUniqueOrThrow({ where: { id: book.id }, include: { tags: { include: { tag: true } }, categories: true } });
+      assert.equal(saved.authorName, 'Corrected test author');
+      assert.deepEqual(saved.tags.map(item => item.tag.name), [legacyTag]);
+      if (category) assert(saved.categories.some(item => item.categoryId === category.id));
+      await page.goto(`${origin}/books/${book.id}/edit`);
+      await expect(page.getByLabel('Author name', { exact: true })).toHaveValue('Corrected test author');
+      await expect(page.getByLabel('Tags (comma-separated)', { exact: true })).toHaveValue(legacyTag);
+      if (category) await expect(page.locator(`input[name="categoryIds"][value="${category.id}"]`)).toBeChecked();
+      console.log('Live browser author/category edit, legacy tag preservation and persisted reload passed after cookie expiry.');
       await page.goto(`${origin}/books?search=${encodeURIComponent(editedTitle)}`);
       await context.clearCookies({ name: 'zita_admin_session' });
       page.once('dialog', dialog => dialog.accept());
@@ -52,7 +65,7 @@ process.stdin.on('end', async () => {
     const page = await request(`/books/${book.id}/edit`, { headers: { Cookie: cookie } });
     const html = await page.text();
     console.log(JSON.stringify({ check: 'Edit page', status: page.status, form: html.includes('Save changes'), loadError: html.includes('Unable to load this book') }));
-    const update = await request(`/api/books/${book.id}`, { method: 'PUT', headers: { Cookie: cookie, 'Content-Type': 'application/json' }, body: JSON.stringify({ title: 'Updated temporary action check', authorName: book.authorName, description: book.description, contentType: 'BOOK', language: 'en', estimatedMinutes: 1, isPremium: false, price: null, categoryIds: [], tags: [] }) });
+    const update = await request(`/api/books/${book.id}`, { method: 'PUT', headers: { Cookie: cookie, 'Content-Type': 'application/json' }, body: JSON.stringify({ title: 'Updated temporary action check', authorName: book.authorName, description: book.description, contentType: 'BOOK', language: 'en', estimatedMinutes: 1, isPremium: false, price: null, categoryIds: [], tags: [legacyTag] }) });
     const updateBody = await update.json();
     console.log(JSON.stringify({ check: 'Edit save', status: update.status, success: updateBody.success, error: updateBody.error }));
     const remove = await request(`/api/books/${book.id}`, { method: 'DELETE', headers: { Cookie: cookie } });
@@ -72,6 +85,7 @@ process.stdin.on('end', async () => {
       await db.deletedBook.deleteMany({ where: { id: book.id, slug: `zita-actions-${suffix}` } });
     }
     if (user) await db.user.deleteMany({ where: { id: user.id, email } });
+    await db.tag.deleteMany({ where: { name: legacyTag, books: { none: {} } } });
     await db.$disconnect();
     console.log('Disposable test data removed.');
   }

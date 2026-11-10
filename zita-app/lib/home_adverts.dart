@@ -5,8 +5,8 @@ import 'package:flutter/services.dart';
 import 'book_details.dart';
 import 'brand_art.dart';
 
-/// Campaign images are configured in assets/home_adverts.json. Empty image URLs
-/// use existing ZITA artwork/book covers; no third-party adverts are fabricated.
+/// Bundled campaign artwork is configured in assets/home_adverts.json.
+/// Existing illustrations remain available if an image cannot be loaded.
 class HomeAdverts extends StatefulWidget {
   const HomeAdverts(
       {super.key,
@@ -23,11 +23,11 @@ class _HomeAdvertsState extends State<HomeAdverts> with WidgetsBindingObserver {
   Timer? rotation;
   bool foreground = true, touching = false;
   static const slideColors = [
-    Color(0xffffd56b),
-    Color(0xffffb3c1),
-    Color(0xff9ce8cf),
-    Color(0xffcfb4ff),
-    Color(0xffffb078)
+    Color(0xffe5f3ff),
+    Color(0xffdeedff),
+    Color(0xffe3f6f5),
+    Color(0xffeceaff),
+    Color(0xffffefdf)
   ];
   final pages = PageController();
   List<Map<String, dynamic>> adverts = [];
@@ -113,6 +113,15 @@ class _HomeAdvertsState extends State<HomeAdverts> with WidgetsBindingObserver {
             : FittedBox(
                 fit: BoxFit.contain,
                 child: _CampaignIllustration(index: index));
+    final asset = ad['imageAsset'] as String?;
+    if (asset != null && asset.startsWith('assets/adverts/')) {
+      return Image.asset(asset,
+          width: double.infinity,
+          height: double.infinity,
+          fit: BoxFit.contain,
+          semanticLabel: '${ad['title']}. ${ad['subtitle'] ?? ''}',
+          errorBuilder: (_, error, stack) => fallback);
+    }
     if (uri?.scheme != 'https' || uri!.host.isEmpty) return fallback;
     return Image.network(url,
         width: double.infinity,
@@ -160,63 +169,95 @@ class _HomeAdvertsState extends State<HomeAdverts> with WidgetsBindingObserver {
                                 clipBehavior: Clip.antiAlias,
                                 child: InkWell(
                                     onTap: action,
-                                    child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.stretch,
-                                        children: [
-                                          SizedBox(
-                                              height: 85,
-                                              child: artwork(ad, index)),
-                                          Expanded(
-                                              child: Padding(
-                                                  padding:
-                                                      const EdgeInsets.fromLTRB(
-                                                          16, 10, 16, 12),
-                                                  child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      children: [
-                                                        Text(
-                                                            ad['title']
-                                                                as String,
-                                                            maxLines: 2,
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .ellipsis,
-                                                            style: const TextStyle(
-                                                                fontSize: 20,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w700,
-                                                                color: Color(
-                                                                    0xff19233d))),
-                                                        const SizedBox(
-                                                            height: 6),
-                                                        Text(
-                                                            ad['subtitle']
-                                                                    as String? ??
-                                                                '',
-                                                            maxLines: 2,
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .ellipsis,
-                                                            style: const TextStyle(
-                                                                fontSize: 14,
-                                                                color: Color(
-                                                                    0xff303c55))),
-                                                        TextButton(
-                                                            style: TextButton.styleFrom(
-                                                                foregroundColor:
-                                                                    const Color(
-                                                                        0xff19233d)),
-                                                            onPressed: action,
-                                                            child: Text(ad[
-                                                                        'button']
-                                                                    as String? ??
-                                                                'Explore')),
-                                                      ]))),
-                                        ]))));
+                                    child: !largeText &&
+                                            ad['imageAsset'] != null
+                                        ? Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.stretch,
+                                            children: [
+                                                Expanded(
+                                                    child: artwork(ad, index)),
+                                                Padding(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 16,
+                                                      vertical: 4),
+                                                  child: TextButton(
+                                                      style: TextButton.styleFrom(
+                                                          minimumSize:
+                                                              const Size(
+                                                                  44, 48),
+                                                          foregroundColor:
+                                                              const Color(
+                                                                  0xff0752a6)),
+                                                      onPressed: action,
+                                                      child: Text(ad['button']
+                                                              as String? ??
+                                                          'Explore')),
+                                                ),
+                                              ])
+                                        : Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.stretch,
+                                            children: [
+                                                SizedBox(
+                                                    height: 85,
+                                                    child: artwork(ad, index)),
+                                                Expanded(
+                                                    child: Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .fromLTRB(
+                                                                16, 10, 16, 12),
+                                                        child: Column(
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
+                                                            children: [
+                                                              Text(
+                                                                  ad[
+                                                                          'title']
+                                                                      as String,
+                                                                  maxLines: 2,
+                                                                  overflow:
+                                                                      TextOverflow
+                                                                          .ellipsis,
+                                                                  style: const TextStyle(
+                                                                      fontSize:
+                                                                          18,
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w700,
+                                                                      color: Color(
+                                                                          0xff19233d))),
+                                                              const SizedBox(
+                                                                  height: 6),
+                                                              Text(
+                                                                  ad['subtitle']
+                                                                          as String? ??
+                                                                      '',
+                                                                  maxLines: 2,
+                                                                  overflow:
+                                                                      TextOverflow
+                                                                          .ellipsis,
+                                                                  style: const TextStyle(
+                                                                      fontSize:
+                                                                          13,
+                                                                      color: Color(
+                                                                          0xff303c55))),
+                                                              TextButton(
+                                                                  style: TextButton.styleFrom(
+                                                                      foregroundColor:
+                                                                          const Color(
+                                                                              0xff19233d)),
+                                                                  onPressed:
+                                                                      action,
+                                                                  child: Text(ad[
+                                                                              'button']
+                                                                          as String? ??
+                                                                      'Explore')),
+                                                            ]))),
+                                              ]))));
                       }))),
           Wrap(
               alignment: WrapAlignment.center,

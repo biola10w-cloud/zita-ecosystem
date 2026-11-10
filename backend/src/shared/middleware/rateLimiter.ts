@@ -1,4 +1,4 @@
-import { FastifyInstance } from 'fastify';
+import { FastifyInstance, FastifyRequest } from 'fastify';
 import fastifyRateLimit from '@fastify/rate-limit';
 import Redis from 'ioredis';
 import { config } from '../../config';
@@ -18,6 +18,15 @@ export async function registerRateLimiter(app: FastifyInstance) {
 
 // Pre-built rate limit configs for different route types
 export const rateLimits = {
+  // Offline downloads read chapters sequentially. Authenticate before counting
+  // so readers on the same network do not consume one another's allowance.
+  chapterRead: {
+    max: 600,
+    timeWindow: '1 minute',
+    hook: 'preHandler' as const,
+    keyGenerator: (request: FastifyRequest) =>
+      `chapter-read:${request.user?.sub ?? request.ip}`,
+  },
   // Auth endpoints â€” strict to prevent brute force
   auth: {
     max: 5,

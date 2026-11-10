@@ -46,6 +46,17 @@ export class AdminService {
     const categoryIds = [...new Set(input.categoryIds)];
     await AdminService.validateCategories(categoryIds);
     const tags = [...new Set(input.tags.map((tag) => tag.trim().toLowerCase()).filter(Boolean))];
+    const longTags = tags.filter(tag => tag.length > 60);
+    if (longTags.length) {
+      const existing = await prisma.book.findUniqueOrThrow({
+        where: { id: bookId }, select: { tags: { select: { tag: { select: { name: true } } } } },
+      });
+      const savedTags = new Set(existing.tags.map(({ tag }) => tag.name.trim().toLowerCase()));
+      if (longTags.some(tag => !savedTags.has(tag))) {
+        throw Object.assign(new Error('Tags: new or changed tags must be 60 characters or fewer. Separate tags with commas.'),
+          { statusCode: 400, code: 'VALIDATION_ERROR' });
+      }
+    }
     await prisma.book.update({
       where: { id: bookId },
       data: {

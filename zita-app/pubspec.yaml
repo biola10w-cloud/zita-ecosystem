@@ -1,7 +1,7 @@
 name: zita_app
 description: Zita's mobile reading app.
 publish_to: none
-version: 1.0.11+12
+version: 1.0.12+13
 environment:
   sdk: '>=3.4.0 <4.0.0'
 dependencies:
@@ -21,6 +21,7 @@ flutter:
   assets:
     - assets/fonts/OFL.txt
     - assets/home_adverts.json
+    - assets/adverts/
   fonts:
     - family: ZitaSerif
       fonts:

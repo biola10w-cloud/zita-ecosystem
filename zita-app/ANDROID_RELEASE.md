@@ -1,8 +1,23 @@
 # Android testing build
 
 Application ID: `com.zita.zita_app` (retain for future updates).
-Display name: **ZITA**. Current version: `1.0.11+12`.
+Display name: **ZITA**. Current version: `1.0.12+13`.
 The first build has been uploaded to Google Play internal testing by the owner.
+
+## Finished slide artwork for closed testing
+
+- Version: `1.0.12+13`.
+- Includes five bundled, captioned campaign pictures for summaries, listening,
+  community, languages and offline reading, configured in `assets/home_adverts.json`.
+- Preserves automatic rotation, swipe/arrow navigation and the large-text layout.
+- Eight focused carousel/homepage tests and Flutter static analysis passed.
+- Signed file: `release-artifacts/android/1.0.12-13/ZITA-THE-APP-1.0.12-13.aab`.
+- SHA-256: `107653d0b3bfafd427671128d5512169ffbc1f7432ccdb0c5dc4ef09afd56c50`.
+- Release compilation, strict signature verification and bundletool validation passed.
+  Original package/certificate, version code 13, non-debuggable release and inclusion
+  of all five captioned slide images were verified. Physical-device preview remains
+  to be checked after installation. This update has not been uploaded to Play.
+- Upload the new bundle to the existing closed testing track when ready.
 
 ## New version code for Closed testing
 

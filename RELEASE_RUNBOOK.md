@@ -1,5 +1,33 @@
 # Production Release Runbook
 
+## October 31, 2026 offline download throttle fix
+
+- Chapter text reads used the expensive-operation limit of 20 requests/minute,
+  while mobile offline downloads request every chapter sequentially. The current
+  catalog's largest book has 45 chapters.
+- Chapter text now has a separate 600 requests/minute allowance, keyed by reader
+  after authentication. Translation/audio operation limits remain unchanged.
+- Regression coverage verifies a 120-chapter burst, a bounded 600-request limit,
+  separate readers sharing an IP, authentication and the translation limit.
+  TypeScript checking passed.
+- Backend deployment `ce7371a9-c122-42bd-895a-488910ad0953` succeeded.
+- Live API verification downloaded all 45 chapters in 31.349 seconds without a
+  rate-limit response. Disposable reader/access/session records were removed.
+  No mobile rebuild is required; device storage/airplane-mode behavior was not
+  re-tested for this server-only change.
+
+## October 30, 2026 book edit fix
+
+- A read-only audit found 14 of 27 books had legacy tags longer than the current
+  60-character limit. Resubmitting these unchanged tags blocked author/category edits.
+- Book updates now allow long tags already attached to that book, while rejecting
+  new or changed oversized tags. Validation responses identify the failing field.
+- Thirteen book-management tests and TypeScript checking passed.
+- Deployed backend `ac428bbe-8cd1-443d-983e-a334dbc496e4`; Railway health check passed.
+- Live browser verification saved an author/category edit on a disposable draft
+  with a long tag and confirmed values after reload, including expired-session recovery.
+  Test data was removed; published books were not edited.
+
 ## October 6, 2026 deployment verification
 
 - Applied `20261005160000_user_blocks` to production using Prisma migrate deploy.

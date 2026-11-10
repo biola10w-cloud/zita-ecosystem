@@ -22,6 +22,8 @@ const createBookSchema = z.object({
 });
 
 const updateBookSchema = createBookSchema.omit({ categoryId: true }).extend({
+  // The service accepts legacy long tags only when already attached to this book.
+  tags: z.array(z.string().trim().min(1)).max(50).default([]),
   categoryIds: z.array(z.string().min(1)).max(50),
   price: z.number().finite().min(0).max(99999999.99).nullable().optional(),
 });
@@ -53,7 +55,15 @@ export async function adminRoutes(app: FastifyInstance) {
 
   app.put('/books/:id', adminGuard, async (request, reply) => {
     const { id } = request.params as { id: string };
-    const book = await AdminService.updateBook(id, updateBookSchema.parse(request.body));
+    const parsed = updateBookSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ success: false, error: {
+        code: 'VALIDATION_ERROR',
+        message: parsed.error.issues.map(issue => `${issue.path.join('.')}: ${issue.message}`).join('; '),
+        fields: parsed.error.flatten().fieldErrors,
+      } });
+    }
+    const book = await AdminService.updateBook(id, parsed.data);
     return reply.send({ success: true, data: book });
   });
 

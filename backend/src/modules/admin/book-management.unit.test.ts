@@ -76,7 +76,7 @@ describe('book management', () => {
 describe('admin endpoints', () => {
   async function request(method: 'GET' | 'PUT' | 'DELETE', role?: string, payload?: object) {
     const app = Fastify();
-    app.setErrorHandler((error, _request, reply) => reply.status(error instanceof ZodError ? 400 : 500).send({ success: false }));
+    app.setErrorHandler((error, _request, reply) => reply.status(error instanceof ZodError ? 400 : error.statusCode ?? 500).send({ success: false, error: { message: error.message } }));
     await app.register(adminRoutes);
     try { return await app.inject({ method, url: '/books/book', headers: role ? { authorization: role } : {}, payload }); }
     finally { await app.close(); }
@@ -87,8 +87,32 @@ describe('admin endpoints', () => {
     expect(mocks.book.delete).not.toHaveBeenCalled(); expect(mocks.book.update).not.toHaveBeenCalled();
   });
   it('validates edits and returns updated metadata', async () => {
-    expect((await request('PUT', 'ADMIN', { ...input, title: '  ' })).statusCode).toBe(400);
+    const invalid = await request('PUT', 'ADMIN', { ...input, title: '  ' });
+    expect(invalid.statusCode).toBe(400);
+    expect(invalid.json().error.message).toContain('title:');
     expect(mocks.book.update).not.toHaveBeenCalled();
     expect((await request('PUT', 'ADMIN', input)).statusCode).toBe(200);
+  });
+  it('saves author and category edits while retaining a legacy long tag', async () => {
+    const legacy = 'legacy '.repeat(12).trim();
+    mocks.book.findUniqueOrThrow.mockResolvedValue({ id: 'book', category: null, categories: [], tags: [{ tag: { name: legacy } }] });
+    const response = await request('PUT', 'ADMIN', { ...input, authorName: 'Corrected author', tags: [legacy] });
+    expect(response.statusCode).toBe(200);
+    const saved = mocks.book.update.mock.calls[0][0].data;
+    expect(saved.authorName).toBe('Corrected author');
+    expect(saved.categories.create).toEqual([{ categoryId: 'one' }, { categoryId: 'two' }]);
+    expect(saved.tags.create[0].tag.connectOrCreate.create.name).toBe(legacy);
+  });
+  it('rejects new oversized tags without saving any part of the edit', async () => {
+    const response = await request('PUT', 'ADMIN', { ...input, tags: ['x'.repeat(61)] });
+    expect(response.statusCode).toBe(400);
+    expect(response.json().error.message).toContain('60 characters');
+    expect(mocks.book.update).not.toHaveBeenCalled();
+  });
+  it('still allows removing a legacy long tag', async () => {
+    mocks.book.findUniqueOrThrow.mockResolvedValue({ id: 'book', category: null, categories: [], tags: [{ tag: { name: 'x'.repeat(80) } }] });
+    expect((await request('PUT', 'ADMIN', { ...input, tags: ['short'] })).statusCode).toBe(200);
+    expect(mocks.book.update.mock.calls[0][0].data.tags.create).toHaveLength(1);
+    expect(mocks.book.update.mock.calls[0][0].data.tags.create[0].tag.connectOrCreate.create.name).toBe('short');
   });
 });

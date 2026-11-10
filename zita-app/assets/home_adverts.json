@@ -1,7 +1,42 @@
 [
-  {"title":"Your next big idea starts here", "subtitle":"Discover book summaries for your next chapter.", "action":"explore", "button":"Explore books", "imageUrl":""},
-  {"title":"Turn reading time into listening time", "subtitle":"Listen, pause and pick up where you left off.", "action":"explore", "button":"Find a book", "imageUrl":""},
-  {"title":"Good books. Great conversations.", "subtitle":"Meet readers and share what you are learning.", "action":"community", "button":"Join the community", "imageUrl":""},
-  {"title":"Big ideas. Your language.", "subtitle":"Explore summaries and translate as you read.", "action":"explore", "button":"Discover summaries", "imageUrl":""},
-  {"title":"Make room for your next breakthrough", "subtitle":"Build a reading habit, one inspiring summary at a time.", "action":"explore", "button":"Start exploring", "imageUrl":""}
+    {
+        "title":  "Book summaries",
+        "subtitle":  "Big ideas. Less reading time.",
+        "action":  "explore",
+        "button":  "Explore books",
+        "imageUrl":  "",
+        "imageAsset":  "assets/adverts/discover-captioned.jpg"
+    },
+    {
+        "title":  "Listen to books",
+        "subtitle":  "Pause, resume and keep listening.",
+        "action":  "explore",
+        "button":  "Find a book",
+        "imageUrl":  "",
+        "imageAsset":  "assets/adverts/listen-captioned.jpg"
+    },
+    {
+        "title":  "Read. Share. Connect.",
+        "subtitle":  "Discuss books with other readers.",
+        "action":  "community",
+        "button":  "Join the community",
+        "imageUrl":  "",
+        "imageAsset":  "assets/adverts/community-captioned.jpg"
+    },
+    {
+        "title":  "Read in your language",
+        "subtitle":  "Translate supported book content.",
+        "action":  "explore",
+        "button":  "Discover summaries",
+        "imageUrl":  "",
+        "imageAsset":  "assets/adverts/languages-captioned.jpg"
+    },
+    {
+        "title":  "Read offline",
+        "subtitle":  "Download books with eligible access.",
+        "action":  "explore",
+        "button":  "Start exploring",
+        "imageUrl":  "",
+        "imageAsset":  "assets/adverts/offline-captioned.jpg"
+    }
 ]

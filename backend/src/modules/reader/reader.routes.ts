@@ -9,7 +9,9 @@ export async function readerRoutes(app: FastifyInstance) {
   const heavy = { preHandler: [authenticate], config: { rateLimit: rateLimits.heavy } };
 
   // GET /api/v1/books/:slug/chapters/:index/content
-  app.get('/:slug/chapters/:index/content', heavy, ReaderController.getChapterContent);
+  app.get('/:slug/chapters/:index/content', {
+    preHandler: [authenticate], config: { rateLimit: rateLimits.chapterRead },
+  }, ReaderController.getChapterContent);
   app.post('/:slug/translations', heavy, ReaderController.requestTranslation);
 
   // GET /api/v1/books/:slug/chapters/:index/audio — "listen to the book"
