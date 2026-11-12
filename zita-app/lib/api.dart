@@ -58,6 +58,8 @@ class ZitaApi extends ChangeNotifier {
   String? _access;
   String? _refresh;
   Future<void>? _refreshing;
+  Future<void>? _notificationCountRefresh;
+  int unreadNotificationCount = 0;
   bool get signedIn => _refresh != null;
   late final offline = OfflineReading(this);
   String? get accountId {
@@ -72,6 +74,40 @@ class ZitaApi extends ChangeNotifier {
   }
 
   bool readingTestAccess = false;
+
+  Future<void> refreshUnreadNotificationCount() async {
+    if (!signedIn) {
+      if (unreadNotificationCount != 0) {
+        unreadNotificationCount = 0;
+        notifyListeners();
+      }
+      return;
+    }
+    if (_notificationCountRefresh != null) {
+      await _notificationCountRefresh;
+      return;
+    }
+    _notificationCountRefresh = _loadUnreadNotificationCount();
+    try {
+      await _notificationCountRefresh;
+    } finally {
+      _notificationCountRefresh = null;
+    }
+  }
+
+  Future<void> _loadUnreadNotificationCount() async {
+    try {
+      final result = await request('notifications/unread-count',
+          authenticated: true);
+      final next = result is Map ? (result['unreadCount'] as num? ?? 0).toInt() : 0;
+      if (next != unreadNotificationCount) {
+        unreadNotificationCount = next;
+        notifyListeners();
+      }
+    } catch (_) {
+      // The inbox remains available for a manual refresh if this count fails.
+    }
+  }
   Future<void> refreshAccessPolicy() async {
     try {
       if (!signedIn) {
@@ -118,6 +154,7 @@ class ZitaApi extends ChangeNotifier {
   Future<void> clearSession() async {
     await offline.clear();
     readingTestAccess = false;
+    unreadNotificationCount = 0;
     _access = null;
     _refresh = null;
     await store.delete('zita_session');

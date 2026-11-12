@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'api.dart';
 import 'home_adverts.dart';
@@ -8,6 +9,7 @@ import 'community.dart';
 import 'discovery_widgets.dart';
 import 'screens.dart';
 import 'offline_library.dart';
+import 'notifications.dart';
 
 class MobileShell extends StatefulWidget {
   const MobileShell({super.key, required this.api});
@@ -16,23 +18,50 @@ class MobileShell extends StatefulWidget {
   State<MobileShell> createState() => _MobileShellState();
 }
 
-class _MobileShellState extends State<MobileShell> {
+class _MobileShellState extends State<MobileShell> with WidgetsBindingObserver {
   int selected = 0;
   final visited = <int>{0};
   final exploreKey = GlobalKey<LibraryScreenState>();
+  Timer? notificationTimer;
+  bool? previousSignedIn;
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    previousSignedIn = widget.api.signedIn;
     widget.api.addListener(changed);
+    if (widget.api.signedIn) {
+      unawaited(widget.api.refreshUnreadNotificationCount());
+    }
+    notificationTimer = Timer.periodic(const Duration(seconds: 45), (_) {
+      if (widget.api.signedIn) {
+        unawaited(widget.api.refreshUnreadNotificationCount());
+      }
+    });
   }
 
   void changed() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    final signedIn = widget.api.signedIn;
+    if (signedIn != previousSignedIn) {
+      previousSignedIn = signedIn;
+      if (signedIn) unawaited(widget.api.refreshUnreadNotificationCount());
+    }
+    setState(() {});
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && widget.api.signedIn) {
+      unawaited(widget.api.refreshUnreadNotificationCount());
+    }
   }
 
   @override
   void dispose() {
     widget.api.removeListener(changed);
+    notificationTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
@@ -238,6 +267,7 @@ class _ReadingHomeState extends State<ReadingHome> {
                 tooltip: 'Search books',
                 onPressed: () => widget.onExplore(),
                 icon: const Icon(Icons.search)),
+          if (widget.api.signedIn) NotificationBell(api: widget.api),
             IconButton(
                 tooltip: 'My profile',
                 onPressed: widget.onProfile,

@@ -1,5 +1,17 @@
 # Production Release Runbook
 
+## November 12, 2026 in-app community notifications
+
+- Adds a persistent mobile inbox for replies to a reader's comment and selected
+  @mentions. Notifications are created with the comment transaction, include an
+  unread count, and open the related discussion thread.
+- The mobile composer includes reader search and mention selection. The home and
+  library app bars show the unread badge and refresh it while the app is active.
+- Apply Prisma migration `20261112100000_in_app_notifications` and deploy the API
+  before releasing mobile version `1.0.13+14`.
+- This inbox works without Firebase Cloud Messaging. The existing push path still
+  requires Firebase setup and device-token registration for OS-level alerts.
+
 ## October 31, 2026 offline download throttle fix
 
 - Chapter text reads used the expensive-operation limit of 20 requests/minute,

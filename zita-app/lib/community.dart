@@ -17,6 +17,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
   final posts = <Map<String, dynamic>>[];
   final liked = <String>{};
   final busyActions = <String>{};
+  final mentionedUsers = <String, String>{};
   bool loading = false, more = true, posting = false;
   int page = 1, generation = 0;
   String sort = 'recent';
@@ -25,6 +26,24 @@ class _CommunityScreenState extends State<CommunityScreen> {
   String get endpoint => replies
       ? 'comments/${Uri.encodeComponent(widget.parent!['id'] as String)}/replies'
       : 'community/posts';
+
+  bool bodyContainsMention(String body, String displayName) {
+    final text = body.toLowerCase();
+    final token = '@${displayName.toLowerCase()}';
+    var offset = 0;
+    while (offset < text.length) {
+      final start = text.indexOf(token, offset);
+      if (start < 0) return false;
+      final end = start + token.length;
+      final beforeIsWord = start > 0 &&
+          RegExp(r'[A-Za-z0-9_]').hasMatch(text[start - 1]);
+      final afterIsWord = end < text.length &&
+          RegExp(r'[A-Za-z0-9_]').hasMatch(text[end]);
+      if (!beforeIsWord && !afterIsWord) return true;
+      offset = start + 1;
+    }
+    return false;
+  }
 
   @override
   void initState() {
@@ -94,9 +113,14 @@ class _CommunityScreenState extends State<CommunityScreen> {
           data: {
             'body': draft.text.trim(),
             if (replies) 'parentId': widget.parent!['id'],
+            'mentionedUserIds': mentionedUsers.entries
+                .where((entry) => bodyContainsMention(draft.text, entry.value))
+                .map((entry) => entry.key)
+                .toList(),
           });
       if (!mounted) return;
       draft.clear();
+      mentionedUsers.clear();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(replies ? 'Reply posted.' : 'Discussion posted.')));
       await load(reset: true);
@@ -105,6 +129,33 @@ class _CommunityScreenState extends State<CommunityScreen> {
     } finally {
       if (mounted) setState(() => posting = false);
     }
+  }
+
+  Future<void> mentionReader() async {
+    if (posting) return;
+    final user = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => MentionReaderSheet(api: widget.api),
+    );
+    if (user == null || !mounted) return;
+    final id = user['id'] as String;
+    final name = user['displayName'] as String;
+    final selection = draft.selection;
+    final start = selection.isValid && selection.start >= 0
+        ? selection.start
+        : draft.text.length;
+    final end = selection.isValid && selection.end >= start
+        ? selection.end
+        : start;
+    final token = '@$name ';
+    final text = draft.text.replaceRange(start, end, token);
+    draft.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: start + token.length),
+    );
+    mentionedUsers[id] = name;
+    setState(() {});
   }
 
   Future<void> like(Map<String, dynamic> post) async {
@@ -325,6 +376,10 @@ class _CommunityScreenState extends State<CommunityScreen> {
                                   border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(24),
                                       borderSide: BorderSide.none)))),
+                      IconButton(
+                          tooltip: 'Mention a reader',
+                          onPressed: posting ? null : mentionReader,
+                          icon: const Icon(Icons.alternate_email)),
                       const SizedBox(width: 8),
                       IconButton.filled(
                           tooltip: replies ? 'Post reply' : 'Post discussion',
@@ -376,6 +431,100 @@ class _CommunityScreenState extends State<CommunityScreen> {
                             ? 'Load more replies'
                             : 'Load more discussions')),
                 ])),
+      );
+}
+
+class MentionReaderSheet extends StatefulWidget {
+  const MentionReaderSheet({super.key, required this.api});
+  final ZitaApi api;
+  @override
+  State<MentionReaderSheet> createState() => _MentionReaderSheetState();
+}
+
+class _MentionReaderSheetState extends State<MentionReaderSheet> {
+  final search = TextEditingController();
+  List<Map<String, dynamic>> readers = [];
+  bool loading = false;
+  Object? error;
+  int generation = 0;
+
+  @override
+  void dispose() {
+    search.dispose();
+    super.dispose();
+  }
+
+  Future<void> findReaders(String value) async {
+    final query = value.trim();
+    final current = ++generation;
+    if (query.isEmpty) {
+      setState(() {
+        readers = [];
+        error = null;
+        loading = false;
+      });
+      return;
+    }
+    setState(() {
+      loading = true;
+      error = null;
+    });
+    try {
+      final results = List<Map<String, dynamic>>.from(
+          await widget.api.request(
+              'community/mention-users?q=${Uri.encodeQueryComponent(query)}',
+              authenticated: true));
+      if (mounted && current == generation) readers = results;
+    } catch (failure) {
+      if (mounted && current == generation) error = failure;
+    } finally {
+      if (mounted && current == generation) setState(() => loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+              20, 16, 20, 20 + MediaQuery.viewInsetsOf(context).bottom),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Text('Mention a reader',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 12),
+            TextField(
+                controller: search,
+                autofocus: true,
+                onChanged: findReaders,
+                decoration: const InputDecoration(
+                    labelText: 'Search readers',
+                    prefixIcon: Icon(Icons.search))),
+            const SizedBox(height: 8),
+            if (loading) const LinearProgressIndicator(),
+            if (error != null) Text('Could not search readers: $error'),
+            if (!loading && error == null && search.text.trim().isEmpty)
+              const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text('Enter a name to find a reader.')),
+            if (!loading && error == null && search.text.trim().isNotEmpty && readers.isEmpty)
+              const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text('No readers found.')),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: readers.length,
+                itemBuilder: (context, index) {
+                  final reader = readers[index];
+                  return ListTile(
+                    leading: const CircleAvatar(child: Icon(Icons.person_outline)),
+                    title: Text(reader['displayName'] as String? ?? 'Reader'),
+                    onTap: () => Navigator.of(context).pop(reader),
+                  );
+                },
+              ),
+            ),
+          ]),
+        ),
       );
 }
 

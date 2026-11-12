@@ -8,6 +8,9 @@ export async function communityRoutes(app: FastifyInstance) {
     reply.header('Cache-Control', 'private, no-store');
     if (request.headers.authorization) await authenticate(request, reply);
   } };
+  app.get('/community/mention-users', {
+    preHandler: [authenticate], config: { rateLimit: rateLimits.api },
+  }, CommunityController.mentionUsers);
   app.get('/community/posts', api, CommunityController.listComments);
   app.post('/community/posts', {
     preHandler: [authenticate],

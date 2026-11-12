@@ -61,6 +61,11 @@ enum ReportStatus {
   DISMISSED
 }
 
+enum NotificationType {
+  REPLY
+  MENTION
+}
+
 model User {
   id                String   @id @default(uuid())
   email             String   @unique
@@ -87,6 +92,8 @@ model User {
   passwordResetTokens PasswordResetToken[]
   blockedUsers      UserBlock[] @relation("BlockedByMe")
   blockedBy         UserBlock[] @relation("BlockingMe")
+  notificationsReceived AppNotification[] @relation("NotificationRecipient")
+  notificationsSent     AppNotification[] @relation("NotificationActor")
 }
 
 model UserBlock {
@@ -353,7 +360,23 @@ model Comment {
   replies    Comment[] @relation("CommentReplies")
   likes      CommentLike[]
   reports    Report[]
+  notifications AppNotification[]
   @@index([parentId, isDeleted, createdAt])
+}
+
+model AppNotification {
+  id          String           @id @default(uuid())
+  recipientId String
+  actorId     String
+  commentId   String
+  type        NotificationType
+  createdAt   DateTime         @default(now())
+  readAt      DateTime?
+  recipient   User             @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor       User             @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+  comment     Comment          @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  @@unique([commentId, recipientId])
+  @@index([recipientId, readAt, createdAt])
 }
 
 model CommentLike {

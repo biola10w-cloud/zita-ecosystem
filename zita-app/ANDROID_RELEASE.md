@@ -1,8 +1,17 @@
 # Android testing build
 
 Application ID: `com.zita.zita_app` (retain for future updates).
-Display name: **ZITA**. Current version: `1.0.12+13`.
+Display name: **ZITA**. Current version: `1.0.13+14`.
 The first build has been uploaded to Google Play internal testing by the owner.
+
+## In-app community notifications
+
+- Version: `1.0.13+14`.
+- Adds a Notifications inbox and unread count for replies and selected @mentions.
+- Tapping an alert opens its discussion thread. Readers can mark one or all alerts read.
+- This release requires the `20261112100000_in_app_notifications` backend migration
+  and the matching API deployment before notifications can be created or viewed.
+- FCM setup is not required for the in-app inbox; OS push alerts remain separate.
 
 ## Finished slide artwork for closed testing
 

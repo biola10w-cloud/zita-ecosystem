@@ -7,6 +7,7 @@ export interface CreateCommentInput {
   bookSlug?: string;
   body:     string;
   parentId?: string;
+  mentionedUserIds?: string[];
 }
 
 export interface ListCommentsQuery {
@@ -18,6 +19,19 @@ export interface ListCommentsQuery {
 }
 
 export class CommunityService {
+  static async findMentionUsers(userId: string, query: string) {
+    const excluded = await BlocksService.excludedIds(userId);
+    return prisma.user.findMany({
+      where: {
+        id: { notIn: [userId, ...excluded] },
+        displayName: { contains: query, mode: 'insensitive' },
+      },
+      select: { id: true, displayName: true },
+      orderBy: { displayName: 'asc' },
+      take: 10,
+    });
+  }
+
   // â”€â”€â”€ List top-level comments (with first replies inline) â”€â”€â”€â”€â”€â”€â”€â”€
 
   static async listComments(query: ListCommentsQuery) {
@@ -95,6 +109,8 @@ export class CommunityService {
 
   static async createComment(input: CreateCommentInput) {
     const { userId, bookSlug, body, parentId } = input;
+    const mentionedUserIds = [...new Set(input.mentionedUserIds ?? [])]
+      .filter(id => id !== userId);
 
     const { ModerationService } = await import('../../shared/moderation/moderation.service');
     const moderation = await ModerationService.checkText(body);
@@ -110,6 +126,21 @@ export class CommunityService {
     }) : null;
     if (bookSlug && !book) throw Object.assign(new Error('Book not found'), { statusCode: 404 });
 
+    const excluded = await BlocksService.excludedIds(userId);
+    const mentionedUsers = mentionedUserIds.length
+      ? await prisma.user.findMany({
+        where: { id: { in: mentionedUserIds } },
+        select: { id: true, displayName: true },
+      })
+      : [];
+    if (mentionedUsers.length !== mentionedUserIds.length) {
+      throw Object.assign(new Error('One or more mentioned readers could not be found.'), { statusCode: 400 });
+    }
+    const commentText = body.trim().toLocaleLowerCase();
+    if (mentionedUsers.some(user => !commentText.includes(`@${user.displayName.toLocaleLowerCase()}`))) {
+      throw Object.assign(new Error('Mentioned readers must appear in the comment text.'), { statusCode: 400 });
+    }
+
     // If a parentId is provided, validate it exists and belongs to this book
     let parentAuthorId: string | null = null;
     let bookId = book?.id ?? null;
@@ -122,7 +153,6 @@ export class CommunityService {
         err.statusCode = 404;
         throw err;
       }
-      const excluded = await BlocksService.excludedIds(userId);
       if (excluded.includes(parent.userId)) {
         throw Object.assign(new Error('This discussion is unavailable.'), { statusCode: 403 });
       }
@@ -137,18 +167,39 @@ export class CommunityService {
       bookId = parent.bookId;
     }
 
-    const comment = await prisma.comment.create({
-      data: {
-        userId,
-        bookId,
-        body: body.trim(),
-        parentId,
-      },
-      include: {
-        user: {
-          select: { id: true, displayName: true, avatarUrl: true },
+    const comment = await prisma.$transaction(async transaction => {
+      const created = await transaction.comment.create({
+        data: {
+          userId,
+          bookId,
+          body: body.trim(),
+          parentId,
         },
-      },
+        include: {
+          user: {
+            select: { id: true, displayName: true, avatarUrl: true },
+          },
+        },
+      });
+
+      const recipients = new Map<string, 'REPLY' | 'MENTION'>();
+      if (parentAuthorId && parentAuthorId !== userId) recipients.set(parentAuthorId, 'REPLY');
+      for (const mentioned of mentionedUsers) {
+        if (mentioned.id !== userId && !excluded.includes(mentioned.id) && !recipients.has(mentioned.id)) {
+          recipients.set(mentioned.id, 'MENTION');
+        }
+      }
+      if (recipients.size) {
+        await transaction.appNotification.createMany({
+          data: [...recipients].map(([recipientId, type]) => ({
+            recipientId,
+            actorId: userId,
+            commentId: created.id,
+            type,
+          })),
+        });
+      }
+      return created;
     });
 
     // Notify the parent comment's author (best-effort, never blocks the request)

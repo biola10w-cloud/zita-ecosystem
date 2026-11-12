@@ -11,6 +11,11 @@ const listQuerySchema = z.object({
 const createCommentSchema = z.object({
   body:     z.string().trim().min(1).max(2000),
   parentId: z.union([z.string().uuid(), z.string().cuid()]).optional(),
+  mentionedUserIds: z.array(z.string().uuid()).max(10).default([]),
+});
+
+const mentionSearchSchema = z.object({
+  q: z.string().trim().min(1).max(80),
 });
 
 const updateCommentSchema = z.object({
@@ -50,9 +55,16 @@ export const CommunityController = {
       bookSlug: slug,
       body: body.body,
       parentId: body.parentId,
+      mentionedUserIds: body.mentionedUserIds,
     });
 
     return reply.status(201).send({ success: true, data: comment });
+  },
+
+  async mentionUsers(request: FastifyRequest, reply: FastifyReply) {
+    const { q } = mentionSearchSchema.parse(request.query);
+    const users = await CommunityService.findMentionUsers(request.user!.sub, q);
+    return reply.send({ success: true, data: users });
   },
 
   async updateComment(request: FastifyRequest, reply: FastifyReply) {
