@@ -1,7 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Fastify from 'fastify';
 
 const mocks = vi.hoisted(() => ({
+  user: { findUnique: vi.fn() },
   book: { findUnique: vi.fn(), findUniqueOrThrow: vi.fn() },
   subscription: { findUnique: vi.fn() },
   purchase: { findFirst: vi.fn() },
@@ -10,11 +11,41 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../../shared/db/prisma', () => ({ prisma: mocks }));
 vi.mock('../../shared/storage/s3', () => ({ S3Service: { downloadEncryptedContent: mocks.download } }));
 import { BooksService } from './books.service';
+import { readingTestAccess } from './reading-access';
 import { assetsRoutes } from './assets.routes';
 
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => { vi.resetAllMocks(); vi.stubEnv('READING_TEST_EMAILS', ''); });
+afterEach(() => vi.unstubAllEnvs());
 
 describe('publication access', () => {
+  it('temporarily allows premium published books without changing stored pricing', async () => {
+    mocks.user.findUnique.mockResolvedValue({ email: 'Tester@Example.com' });
+    const book = { isPremium: true, isPublished: true };
+    mocks.book.findUnique.mockResolvedValue(book);
+    expect((await BooksService.checkUserAccess('reader', 'book')).hasAccess).toBe(false);
+    vi.stubEnv('READING_TEST_EMAILS', 'tester@example.com');
+    expect(await BooksService.checkUserAccess('reader', 'book')).toEqual({ hasAccess: true, reason: 'TEST_ACCESS' });
+
+    expect(book.isPremium).toBe(true);
+    vi.stubEnv('READING_TEST_EMAILS', '');
+    expect((await BooksService.checkUserAccess('reader', 'book')).hasAccess).toBe(false);
+
+  });
+  it('rejects unlisted or missing users and ignores the obsolete global flag', async () => {
+    vi.stubEnv('READING_TEST_EMAILS', 'tester@example.com');
+    vi.stubEnv('READING_TEST_ACCESS', 'true');
+    mocks.user.findUnique.mockResolvedValue({ email: 'other@example.com' });
+    expect(await readingTestAccess('other')).toBe(false);
+    mocks.user.findUnique.mockResolvedValue(null);
+    expect(await readingTestAccess('missing')).toBe(false);
+  });
+  it('never unlocks drafts or missing books during testing', async () => {
+    vi.stubEnv('READING_TEST_EMAILS', 'tester@example.com');
+    mocks.book.findUnique.mockResolvedValue({ isPremium: true, isPublished: false });
+    expect((await BooksService.checkUserAccess('reader', 'draft')).hasAccess).toBe(false);
+    mocks.book.findUnique.mockResolvedValue(null);
+    expect((await BooksService.checkUserAccess('reader', 'missing')).hasAccess).toBe(false);
+  });
   it.each([false, true])('denies a draft even with entitlements (premium=%s)', async (isPremium) => {
     mocks.book.findUnique.mockResolvedValue({ isPremium, isPublished: false });
     mocks.purchase.findFirst.mockResolvedValue({ id: 'purchase' });

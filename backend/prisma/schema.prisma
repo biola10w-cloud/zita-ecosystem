@@ -61,6 +61,11 @@ enum ReportStatus {
   DISMISSED
 }
 
+enum NotificationType {
+  REPLY
+  MENTION
+}
+
 model User {
   id                String   @id @default(uuid())
   email             String   @unique
@@ -85,6 +90,20 @@ model User {
   reports           Report[]
   authoredBooks     Book[]   @relation("AuthorBooks")
   passwordResetTokens PasswordResetToken[]
+  blockedUsers      UserBlock[] @relation("BlockedByMe")
+  blockedBy         UserBlock[] @relation("BlockingMe")
+  notificationsReceived AppNotification[] @relation("NotificationRecipient")
+  notificationsSent     AppNotification[] @relation("NotificationActor")
+}
+
+model UserBlock {
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+  blocker User @relation("BlockedByMe", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("BlockingMe", fields: [blockedId], references: [id], onDelete: Cascade)
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
 }
 
 model Device {
@@ -149,6 +168,7 @@ model Book {
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
   category          Category?    @relation(fields: [categoryId], references: [id])
+  categories        BookCategory[]
   author            User?        @relation("AuthorBooks", fields: [authorId], references: [id])
   chapters          Chapter[]
   translations      BookTranslation[]
@@ -175,8 +195,25 @@ model Category {
   children  Category[] @relation("CategoryHierarchy")
   createdAt DateTime   @default(now())
   books     Book[]
+  bookCategories BookCategory[]
   @@unique([parentId, name])
   @@index([parentId])
+}
+
+model BookCategory {
+  bookId     String
+  categoryId String
+  book       Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  @@id([bookId, categoryId])
+  @@index([categoryId])
+}
+
+// Durable storage cleanup requests survive API/worker restarts.
+model DeletedBook {
+  id        String   @id
+  slug      String
+  createdAt DateTime @default(now())
 }
 
 model Chapter {
@@ -311,18 +348,35 @@ model BookLike {
 model Comment {
   id         String    @id @default(uuid())
   userId     String
-  bookId     String
+  bookId     String?
   parentId   String?
   body       String
   isDeleted  Boolean   @default(false)
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  book       Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  book       Book?     @relation(fields: [bookId], references: [id], onDelete: Cascade)
   parent     Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
   replies    Comment[] @relation("CommentReplies")
   likes      CommentLike[]
   reports    Report[]
+  notifications AppNotification[]
+  @@index([parentId, isDeleted, createdAt])
+}
+
+model AppNotification {
+  id          String           @id @default(uuid())
+  recipientId String
+  actorId     String
+  commentId   String
+  type        NotificationType
+  createdAt   DateTime         @default(now())
+  readAt      DateTime?
+  recipient   User             @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor       User             @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+  comment     Comment          @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  @@unique([commentId, recipientId])
+  @@index([recipientId, readAt, createdAt])
 }
 
 model CommentLike {

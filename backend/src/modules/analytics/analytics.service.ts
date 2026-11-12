@@ -1,4 +1,5 @@
 import { prisma } from '../../shared/db/prisma';
+import { readingStreakFromDates } from './reading-streak';
 
 export class AnalyticsService {
   // â”€â”€â”€ Ingest a batch of events from the app â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -44,94 +45,57 @@ export class AnalyticsService {
   // â”€â”€â”€ Admin analytics dashboard data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   static async getDashboardStats(days: number = 30) {
-    const since = new Date();
-    since.setDate(since.getDate() - days);
-
-    const [
-      totalUsers,
-      activeSubscriptions,
-      trialSubscriptions,
-      newUsersThisPeriod,
-      totalReadingEvents,
-      topBooks,
-      dailyActiveUsers,
-    ] = await Promise.all([
-      // Total users
+    const now = new Date();
+    const since = new Date(now);
+    since.setUTCHours(0, 0, 0, 0);
+    since.setUTCDate(since.getUTCDate() - days + 1);
+    const [totalUsers, activeSubscriptions, trialSubscriptions, newUsersThisPeriod, activity, topBooks, daily, progress] = await Promise.all([
       prisma.user.count(),
-
-      // Active subscriptions
-      prisma.subscription.count({
-        where: { status: 'ACTIVE' },
+      prisma.subscription.count({ where: { status: 'ACTIVE', currentPeriodEnd: { gt: now } } }),
+      prisma.subscription.count({ where: { status: 'TRIALING', currentPeriodEnd: { gt: now } } }),
+      prisma.user.count({ where: { createdAt: { gte: since, lte: now } } }),
+      prisma.$queryRaw<Array<{ readers: number; opens: number }>>`
+        SELECT COUNT(DISTINCT "userId")::int AS readers,
+          COUNT(*) FILTER (WHERE "eventType" = 'chapter_open')::int AS opens
+        FROM "AnalyticsEvent" WHERE "occurredAt" BETWEEN ${since} AND ${now}
+          AND "eventType" IN ('chapter_open', 'reading_session_end')`,
+      prisma.$queryRaw<Array<{ id: string; title: string; authorName: string; readers: number; opens: number }>>`
+        SELECT b.id, b.title, b."authorName", COUNT(DISTINCT e."userId")::int AS readers,
+          COUNT(*) FILTER (WHERE e."eventType" = 'chapter_open')::int AS opens
+        FROM "AnalyticsEvent" e JOIN "Book" b ON b.id = e."bookId"
+        WHERE e."occurredAt" BETWEEN ${since} AND ${now}
+          AND e."eventType" IN ('chapter_open', 'reading_session_end')
+        GROUP BY b.id, b.title, b."authorName"
+        ORDER BY readers DESC, opens DESC, b.title ASC, b.id ASC LIMIT 10`,
+      prisma.$queryRaw<Array<{ date: string; readers: number; opens: number }>>`
+        SELECT TO_CHAR("occurredAt", 'YYYY-MM-DD') AS date,
+          COUNT(DISTINCT "userId")::int AS readers,
+          COUNT(*) FILTER (WHERE "eventType" = 'chapter_open')::int AS opens
+        FROM "AnalyticsEvent" WHERE "occurredAt" BETWEEN ${since} AND ${now}
+          AND "eventType" IN ('chapter_open', 'reading_session_end')
+        GROUP BY TO_CHAR("occurredAt", 'YYYY-MM-DD') ORDER BY date`,
+      prisma.readingProgress.aggregate({
+        where: { lastReadAt: { gte: since, lte: now } },
+        _count: { _all: true, completedAt: true }, _avg: { percentComplete: true },
       }),
-
-      // Trial subscriptions
-      prisma.subscription.count({
-        where: { status: 'TRIALING' },
-      }),
-
-      // New users in period
-      prisma.user.count({
-        where: { createdAt: { gte: since } },
-      }),
-
-      // Total reading sessions
-      prisma.analyticsEvent.count({
-        where: {
-          eventType: 'reading_session_end',
-          occurredAt: { gte: since },
-        },
-      }),
-
-      // Top books by reading activity
-      prisma.analyticsEvent.groupBy({
-        by: ['bookId'],
-        where: {
-          eventType: 'chapter_open',
-          occurredAt: { gte: since },
-          bookId: { not: null },
-        },
-        _count: { bookId: true },
-        orderBy: { _count: { bookId: 'desc' } },
-        take: 10,
-      }),
-
-      // Daily active users (past 7 days)
-      prisma.$queryRaw`
-        SELECT
-          DATE(occurred_at) as date,
-          COUNT(DISTINCT user_id) as active_users
-        FROM analytics_events
-        WHERE occurred_at >= NOW() - INTERVAL '7 days'
-          AND user_id IS NOT NULL
-        GROUP BY DATE(occurred_at)
-        ORDER BY date ASC
-      `,
     ]);
-
-    // Enrich top books with metadata
-    const topBookIds = topBooks.map((b) => b.bookId!).filter(Boolean);
-    const bookDetails = topBookIds.length > 0
-      ? await prisma.book.findMany({
-          where: { id: { in: topBookIds } },
-          select: { id: true, title: true, authorName: true, coverUrl: true },
-        })
-      : [];
-
-    const topBooksEnriched = topBooks.map((b) => ({
-      ...bookDetails.find((d) => d.id === b.bookId),
-      readCount: b._count.bookId,
-    }));
-
+    const dailyActiveUsers = Array.from({ length: days }, (_, index) => {
+      const date = new Date(since);
+      date.setUTCDate(date.getUTCDate() + index);
+      const key = date.toISOString().slice(0, 10);
+      return daily.find((row) => row.date === key) ?? { date: key, readers: 0, opens: 0 };
+    });
     return {
+      days,
       overview: {
-        totalUsers,
-        activeSubscriptions,
-        trialSubscriptions,
-        newUsersThisPeriod,
-        totalReadingEvents,
+        totalUsers, activeSubscriptions, trialSubscriptions, newUsersThisPeriod,
+        activeReaders: activity[0]?.readers ?? 0,
+        chapterOpens: activity[0]?.opens ?? 0,
+        booksInProgress: progress._count._all - progress._count.completedAt,
+        completedBooks: progress._count.completedAt,
+        averageProgress: Math.round(progress._avg.percentComplete ?? 0),
       },
-      topBooks: topBooksEnriched,
-      dailyActiveUsers,
+      topBooks, dailyActiveUsers,
     };
   }
 
@@ -156,6 +120,7 @@ export class AnalyticsService {
     const inProgressBooks = await prisma.readingProgress.findMany({
       where: {
         userId,
+        book: { isPublished: true },
         completedAt: null,
         percentComplete: { gt: 0 },
       },
@@ -176,7 +141,7 @@ export class AnalyticsService {
     });
 
     const recentHighlights = await prisma.highlight.findMany({
-      where: { userId },
+      where: { userId, book: { isPublished: true } },
       include: {
         book: { select: { id: true, title: true, slug: true } },
       },
@@ -199,32 +164,13 @@ export class AnalyticsService {
   private static async calculateStreak(userId: string): Promise<number> {
     // Get distinct reading days ordered descending
     const readingDays = await prisma.$queryRaw<Array<{ date: Date }>>`
-      SELECT DISTINCT DATE(last_read_at) as date
-      FROM reading_progress
-      WHERE user_id = ${userId}
+      SELECT DISTINCT DATE("occurredAt") as date
+      FROM "AnalyticsEvent"
+      WHERE "userId" = ${userId}
+        AND "eventType" IN ('chapter_open', 'reading_session_end')
       ORDER BY date DESC
     `;
 
-    if (readingDays.length === 0) return 0;
-
-    let streak = 0;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    for (let i = 0; i < readingDays.length; i++) {
-      const day = new Date(readingDays[i].date);
-      day.setHours(0, 0, 0, 0);
-
-      const expected = new Date(today);
-      expected.setDate(today.getDate() - i);
-
-      if (day.getTime() === expected.getTime()) {
-        streak++;
-      } else {
-        break;
-      }
-    }
-
-    return streak;
+    return readingStreakFromDates(readingDays.map((entry) => entry.date));
   }
 }

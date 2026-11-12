@@ -1,0 +1,42 @@
+[
+    {
+        "title":  "Book summaries",
+        "subtitle":  "Big ideas. Less reading time.",
+        "action":  "explore",
+        "button":  "Explore books",
+        "imageUrl":  "",
+        "imageAsset":  "assets/adverts/discover-captioned.jpg"
+    },
+    {
+        "title":  "Listen to books",
+        "subtitle":  "Pause, resume and keep listening.",
+        "action":  "explore",
+        "button":  "Find a book",
+        "imageUrl":  "",
+        "imageAsset":  "assets/adverts/listen-captioned.jpg"
+    },
+    {
+        "title":  "Read. Share. Connect.",
+        "subtitle":  "Discuss books with other readers.",
+        "action":  "community",
+        "button":  "Join the community",
+        "imageUrl":  "",
+        "imageAsset":  "assets/adverts/community-captioned.jpg"
+    },
+    {
+        "title":  "Read in your language",
+        "subtitle":  "Translate supported book content.",
+        "action":  "explore",
+        "button":  "Discover summaries",
+        "imageUrl":  "",
+        "imageAsset":  "assets/adverts/languages-captioned.jpg"
+    },
+    {
+        "title":  "Read offline",
+        "subtitle":  "Download books with eligible access.",
+        "action":  "explore",
+        "button":  "Start exploring",
+        "imageUrl":  "",
+        "imageAsset":  "assets/adverts/offline-captioned.jpg"
+    }
+]

@@ -1,5 +1,59 @@
 # Production Release Runbook
 
+## November 12, 2026 in-app community notifications
+
+- Adds a persistent mobile inbox for replies to a reader's comment and selected
+  @mentions. Notifications are created with the comment transaction, include an
+  unread count, and open the related discussion thread.
+- The mobile composer includes reader search and mention selection. The home and
+  library app bars show the unread badge and refresh it while the app is active.
+- Apply Prisma migration `20261112100000_in_app_notifications` and deploy the API
+  before releasing mobile version `1.0.13+14`.
+- This inbox works without Firebase Cloud Messaging. The existing push path still
+  requires Firebase setup and device-token registration for OS-level alerts.
+
+## October 31, 2026 offline download throttle fix
+
+- Chapter text reads used the expensive-operation limit of 20 requests/minute,
+  while mobile offline downloads request every chapter sequentially. The current
+  catalog's largest book has 45 chapters.
+- Chapter text now has a separate 600 requests/minute allowance, keyed by reader
+  after authentication. Translation/audio operation limits remain unchanged.
+- Regression coverage verifies a 120-chapter burst, a bounded 600-request limit,
+  separate readers sharing an IP, authentication and the translation limit.
+  TypeScript checking passed.
+- Backend deployment `ce7371a9-c122-42bd-895a-488910ad0953` succeeded.
+- Live API verification downloaded all 45 chapters in 31.349 seconds without a
+  rate-limit response. Disposable reader/access/session records were removed.
+  No mobile rebuild is required; device storage/airplane-mode behavior was not
+  re-tested for this server-only change.
+
+## October 30, 2026 book edit fix
+
+- A read-only audit found 14 of 27 books had legacy tags longer than the current
+  60-character limit. Resubmitting these unchanged tags blocked author/category edits.
+- Book updates now allow long tags already attached to that book, while rejecting
+  new or changed oversized tags. Validation responses identify the failing field.
+- Thirteen book-management tests and TypeScript checking passed.
+- Deployed backend `ac428bbe-8cd1-443d-983e-a334dbc496e4`; Railway health check passed.
+- Live browser verification saved an author/category edit on a disposable draft
+  with a long tag and confirmed values after reload, including expired-session recovery.
+  Test data was removed; published books were not edited.
+
+## October 6, 2026 deployment verification
+
+- Applied `20261005160000_user_blocks` to production using Prisma migrate deploy.
+- Published the reader website, including `/delete-account`, to
+  https://client-three-ruddy.vercel.app. Home, community, and deletion pages returned HTTP 200.
+- Deployed API account/blocking changes and the admin expired-session recovery fix.
+- Five admin browser tests passed against fixtures. Live Chrome verification also
+  saved and deleted a disposable unpublished book after removing the test admin's
+  access cookie before each action. Automatic session refresh succeeded in both cases.
+  The published book count was preserved and the temporary account/book were removed.
+- `backend/scripts/verify-admin-actions.cjs --browser` reproduces this controlled
+  check with database configuration supplied on stdin. It never targets existing books.
+- These web/backend deployments do not publish the native app to either store.
+
 Use separate production services for the backend API, backend worker, reader,
 and admin app. Keep all secret values in the provider dashboards, never in Git.
 
@@ -35,7 +89,70 @@ For a database created before migration history was introduced, back it up,
 confirm its schema, then run the one-time baseline command in
 `backend/DEPLOYMENT.md` before future `npm run db:migrate` deploys.
 
+### Book editing, deletion, and multiple categories
+
+Apply `20260924210000_book_management` with `npm run db:migrate` before
+deploying this version of the API, workers, admin, and reader. It copies
+existing category assignments into `BookCategory`; the primary category
+remains available to older clients. No book content is rewritten.
+
+Admins can edit book details and select several categories from Books → Edit.
+Deletion permanently removes the book and its dependent records after an
+admin confirms. It also writes a durable `DeletedBook` cleanup request in
+the same database transaction. The worker checks these requests every minute,
+waits for active book jobs, and removes the book's stored content and cover.
+Failed cleanup requests remain in the database and retry automatically.
+The worker's storage credentials need bucket listing permission (`s3:ListBucket`)
+and object deletion permission (`s3:DeleteObject`) for `books/`,
+`temp/normalized/`, and `public/covers/`. Existing CDN caches may continue
+serving a cover until their cache lifetime expires.
+
+To verify locally, run the focused backend book-management, search, publishing,
+storage and cleanup-worker unit tests. Build `admin`, then run
+`node node_modules/@playwright/test/cli.js test --config=playwright.admin.config.ts`
+from `client` for admin browser tests against fixture data.
+
 ## 4. Go-Live Checks
+
+### Mobile accounts and community blocking
+
+Before deploying the account update, apply `20261005160000_user_blocks` using
+`npm run db:migrate`. It adds only the UserBlock table and its indexes/constraints.
+Deploy the API before clients that use authenticated community feeds and block
+management. Blocking filters both directions for authenticated readers; signed-out
+community content remains public.
+
+`DELETE /api/v1/users/me` requires authentication, the current password, and
+`confirmation: "DELETE"`. Stripe cancellation completes before the local account
+is removed. If cancellation fails, the account remains; if database deletion fails
+after cancellation, billing may already be cancelled and deletion can be retried.
+Apple/Google subscriptions are not cancelled by this endpoint: the UI explicitly
+tells readers to cancel in their store. Payment-provider billing records are separate.
+Do not test this action on a real reader or administrator account.
+
+Account deletion removes owned uploads using the existing durable file cleanup
+queue and removes user analytics. Foreign keys cascade session/device/reset-token,
+reading, comment, like, purchase, report, block and local subscription records.
+Other readers' replies to a removed comment remain as standalone posts under the
+existing `Comment.parentId ON DELETE SET NULL` relation.
+
+Deploy the reader website to publish `/delete-account`, the external deletion
+path required for the Google Play listing. Verify it with a disposable staging
+account, including session invalidation on another device and cancellation failure.
+Unit/browser tests use mocks and do not replace this staging exercise.
+
+Native purchases remain disabled in mobile. Before enabling them, finish receipt
+ownership checks, verified Apple/Google notifications, purchase/restore UI, store
+product configuration, and sandbox transaction tests. Set the Google translation
+provider key on both API and worker before offering new machine translations.
+
+The Mobile checks Android artifact is a debug APK. The separate Android release
+candidate workflow builds an unsigned AAB for local upload-key signing; follow
+`zita-app/ANDROID_RELEASE.md`. The private key and password stay on the owner's
+Windows computer. Only the locally signed AAB is suitable for a Play testing upload.
+iOS needs confirmed bundle/team IDs, distribution signing,
+an active Apple Developer membership, and TestFlight/device checks. Finish
+owner-approved privacy, terms and support pages and store disclosures before submission.
 
 1. Confirm API health and worker logs are both clean after deployment.
 2. Publish one DOCX as an admin, then read it using a non-admin account.

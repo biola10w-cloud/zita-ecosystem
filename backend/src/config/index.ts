@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { z } from 'zod';
 
 const envSchema = z.object({
+  READING_TEST_EMAILS: z.string().default(''),
   NODE_ENV:               z.enum(['development', 'staging', 'production', 'test']).default('development'),
   PORT:                   z.string().default('3000').transform(Number),
   API_BASE_URL:           z.string().url(),

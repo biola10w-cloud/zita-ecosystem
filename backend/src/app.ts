@@ -18,6 +18,7 @@ import { offlineRoutes }       from './modules/offline/offline.routes';
 import { analyticsRoutes }     from './modules/analytics/analytics.routes';
 import { adminRoutes }         from './modules/admin/admin.routes';
 import { authorsRoutes }       from './modules/authors/authors.routes';
+import { notificationsRoutes } from './modules/notifications/notifications.routes';
 
 export async function buildApp() {
   const app = Fastify({
@@ -70,6 +71,7 @@ export async function buildApp() {
   await app.register(analyticsRoutes,     { prefix: '/api/v1/analytics' });
   await app.register(adminRoutes,         { prefix: '/api/v1/admin' });
   await app.register(authorsRoutes,       { prefix: '/api/v1/authors' });
+  await app.register(notificationsRoutes, { prefix: '/api/v1/notifications' });
 
   // â”€â”€â”€ Health check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 

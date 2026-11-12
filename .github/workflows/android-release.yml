@@ -1,0 +1,57 @@
+﻿name: Android release candidate
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, codex/zita-mobile-release-prep]
+    paths: ['zita-app/**', '.github/workflows/android-release.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: zita-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install Flutter
+        run: |
+          git clone --depth 1 --branch 3.47.3 https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - run: flutter pub get --enforce-lockfile
+      - run: flutter analyze
+      - run: flutter test
+      - name: Compile unsigned intermediate for local signing
+        env:
+          ZITA_BUILD_UNSIGNED: 'true'
+        run: |
+          set -euo pipefail
+          flutter build appbundle --release --dart-define-from-file=config/production.json
+          mkdir -p build/play-release
+          cp build/app/outputs/bundle/release/app-release.aab build/play-release/ZITA-THE-APP-unsigned.aab
+          python3 - <<'PY'
+          import zipfile
+          with zipfile.ZipFile('build/play-release/ZITA-THE-APP-unsigned.aab') as bundle:
+              assert 'BundleConfig.pb' in bundle.namelist(), 'Not an Android App Bundle'
+              assert not any(name.upper().endswith(('.RSA', '.DSA', '.EC', '.SF')) and name.startswith('META-INF/') for name in bundle.namelist()), 'Unexpected signature in unsigned intermediate'
+          PY
+          printf '%s\n' "Source commit: $GITHUB_SHA" 'Unsigned intermediate. Must be signed with the private upload key before uploading to Google Play.' > build/play-release/BUILD-INFO.txt
+          (cd build/play-release && sha256sum ZITA-THE-APP-unsigned.aab > SHA256SUMS.txt)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZITA-THE-APP-unsigned-${{ github.run_number }}
+          path: zita-app/build/play-release/
+          if-no-files-found: error
+          retention-days: 30

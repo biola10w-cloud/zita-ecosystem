@@ -8,6 +8,7 @@ export interface JwtPayload {
   email: string;
   role: string;
   deviceId: string;
+  sid: string;       // Session ID; revocation applies before the JWT expires.
   iat: number;
   exp: number;
 }
@@ -34,12 +35,12 @@ export async function authenticate(
 
   const token = authHeader.slice(7);
 
+  let payload: JwtPayload;
   try {
-    const payload = jwt.verify(token, publicKey, {
+    payload = jwt.verify(token, publicKey, {
       algorithms: ['RS256'],
     }) as JwtPayload;
 
-    request.user = payload;
   } catch (err) {
     if (err instanceof jwt.TokenExpiredError) {
       return reply.status(401).send({
@@ -53,6 +54,17 @@ export async function authenticate(
       error: { code: 'INVALID_TOKEN', message: 'Invalid access token' },
     });
   }
+
+  // Check the precise session, not just the device: browsers can share a
+  // fingerprint and revoked JWTs must not remain valid for another 15 minutes.
+  const session = typeof payload.sid === 'string' ? await prisma.session.findFirst({
+    where: { id: payload.sid, userId: payload.sub, deviceId: payload.deviceId, revokedAt: null, expiresAt: { gt: new Date() } },
+    select: { id: true },
+  }) : null;
+  if (!session) return reply.status(401).send({
+    success: false, error: { code: 'SESSION_ENDED', message: 'This session has ended. Your account may have signed in elsewhere. Please sign in again.' },
+  });
+  request.user = payload;
 }
 
 export function requireRole(...roles: string[]) {

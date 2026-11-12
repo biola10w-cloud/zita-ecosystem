@@ -44,3 +44,5 @@ export const translationQueue = createQueue<TranslationJob>('translation');
 export const encryptionQueue  = createQueue<EncryptionJob>('encryption');
 export const keyCleanupQueue  = createQueue<KeyCleanupJob>('key-cleanup');
 export const audioQueue       = createQueue<AudioJob>('audio');
+
+export const bookCleanupQueue = createQueue<Record<string, never>>('book-cleanup');
